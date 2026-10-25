@@ -1,6 +1,8 @@
 # Typle for iPad（SwiftUI）
 
-Typle の iPadOS 版です。Web 版（`src/`）と同じ判定・記録・ベストの規則で、Magic Keyboard などのハードウェアキーボードでも、ソフトウェアキーボードでも練習できます。設計は `docs/superpowers/specs/2026-10-20-ipad-app-design.md` にあります。
+Typle の iPadOS 版です。Web 版（[typle-r](https://github.com/Sparklingstadt/typle-r)）と同じ判定・記録・ベストの規則で、Magic Keyboard などのハードウェアキーボードでも、ソフトウェアキーボードでも練習できます。設計は `docs/specs/2026-10-20-ipad-app-design.md`・`docs/specs/2026-10-20-ipad-web-look-design.md` にあります。
+
+typle-r v0.90.0 で、typle-r の `ios/` からこのリポジトリに移しました（`ios/` の履歴も引き継いでいます）。コミットの `(Sparklingstadt/typle-r#N)` は typle-r の PR で、それまでのリリースノートは typle-r の README にあります。
 
 ## 必要なもの
 
@@ -11,7 +13,6 @@ Typle の iPadOS 版です。Web 版（`src/`）と同じ判定・記録・ベ�
 ## 起動
 
 ```sh
-cd ios
 xcodegen generate      # project.yml から Typle.xcodeproj を作る（コミットしない）
 open Typle.xcodeproj
 ```
@@ -20,7 +21,7 @@ Xcode で「Signing & Capabilities」の Team を自分のものにして、iPad
 
 ## 見た目
 
-Web 版と同じ画面構成・色・部品です。上部バー（ブランド・保存先・ライト／ダーク・アカウント）、幅が 1280pt 以上ならサイドバー、それより狭ければメニューボタンで開くドロワー。色と角丸は `src/app/globals.css` の値を `Typle/Design/Theme.swift` に写しています。表示言語（日本語・English）は「一般」でその場で切り替えられます。
+Web 版と同じ画面構成・色・部品です。上部バー（ブランド・保存先・ライト／ダーク・アカウント）、幅が 1280pt 以上ならサイドバー、それより狭ければメニューボタンで開くドロワー。色と角丸は typle-r の `src/app/globals.css` の値を `Typle/Design/Theme.swift` に写しています。表示言語（日本語・English）は「一般」でその場で切り替えられます。
 
 サンプルデータ（`-TypleDemo YES`、`Typle/Support/DemoData.swift`）で起動すると、各ページを実データに触れずに表示できます。Web 版と見比べるときに使います（v0.70.0 で GitHub Actions のワークフローを削除したため、撮影は手元で行います）。
 
@@ -48,31 +49,41 @@ Web 版と同じ画面構成・色・部品です。上部バー（ブランド�
 
 - 2つのデータは別々で、切り替えてもコピーしません。
 - アカウントでも、この iPad と同じくすべての操作ができます。変更のたびに、読み込んだときの `revision` を付けてデータ全体を保存します。別の画面で先に保存されていたとき（`409 conflict`）は、最新を読み直して同じ変更をやり直します（3回まで）。
-- ログインは「一般」の「GitHub でログイン」で、システムのログイン画面（`ASWebAuthenticationSession`。Safari の GitHub のログインを使えます）が開きます。流れは [README の「iPad と Mac と Android と Windows のログイン」](../README.md#ipad-と-mac-と-android-と-windows-のログイン) にあります。受け取ったトークンは iPad の Keychain にだけ保存し、有効期限は30日です。使っているあいだは自動で延びます。期限が切れたら、もう一度ログインしてください。
+- ログインは「一般」の「GitHub でログイン」で、システムのログイン画面（`ASWebAuthenticationSession`。Safari の GitHub のログインを使えます）が開きます。流れは [typle-r の README の「iPad と Mac と Android と Windows のログイン」](https://github.com/Sparklingstadt/typle-r#ipad-と-mac-と-android-と-windows-のログイン) にあります。受け取ったトークンは iPad の Keychain にだけ保存し、有効期限は30日です。使っているあいだは自動で延びます。期限が切れたら、もう一度ログインしてください。
 - ログアウトするとトークンを消して「この iPad」に戻ります。ログインしたまま「この iPad」に切り替え、あとで「アカウントに切り替える」で戻ることもできます。
-- 同じネットワークの Mac で Web 版を動かして試すときは、`http://<名前>.local:3000` も使えます。それ以外は HTTPS が必要です。GitHub の OAuth App の callback URL がその URL のものである必要があります（開発用ログインは iPad では使えません）。
+- 同じネットワークの Mac で Web 版（typle-r の `npm run dev`）を動かして試すときは、`http://<名前>.local:3000` も使えます。それ以外は HTTPS が必要です。GitHub の OAuth App の callback URL がその URL のものである必要があります（開発用ログインは iPad では使えません）。
 - v0.55.0 までの「アカウント（API）」（自分で立てる `/api/v1` に GitHub のトークンでつなぐ）はなくなりました。更新後の初回起動で、その設定とトークンを消して「この iPad」に戻ります。
 
 ## 構成
 
 | 場所 | 内容 |
 |---|---|
-| `TypleCore/` | Foundation だけに依存する Swift Package。`src/core` の入力判定・記録・ベスト・ランキング・単語リスト・端末・CSV と、最初の単語リスト（`src/plugins/packs` のコピー）。`swift test` で確認します |
+| `TypleCore/` | Foundation だけに依存する Swift Package。typle-r の `src/core` の入力判定・記録・ベスト・ランキング・単語リスト・端末・CSV と、最初の単語リスト（`src/plugins/packs` のコピー）。`swift test` で確認します |
 | `Typle/` | SwiftUI のアプリ。`Storage/`（この iPad とアカウント、ログイン）、`Practice/`、`Lists/`、`Records/`、`Devices/`、`Resources/`（文言とアイコン） |
 | `project.yml` | XcodeGen の設定 |
 
-Mac 版は v0.60.0 から `Typle/` と `TypleCore/` をそのまま使っていましたが、v0.88.0 で別のリポジトリ [Sparklingstadt/typle-m](https://github.com/Sparklingstadt/typle-m) に分けました。typle-m は v0.86.1 の `Typle/` と `TypleCore/` の写しを持つため、ここを変えても Mac 版には入りません。Mac にも入れたいときは typle-m でも同じように直します。
+Mac 版は typle-r v0.60.0 から `Typle/` と `TypleCore/` をそのまま使っていましたが、typle-r v0.88.0 で別のリポジトリ [Sparklingstadt/typle-m](https://github.com/Sparklingstadt/typle-m) に分けました。typle-m は typle-r v0.86.1 の `Typle/` と `TypleCore/` の写しを持つため、ここを変えても Mac 版には入りません。Mac にも入れたいときは typle-m でも同じように直します。
 
 文字は JavaScript の `Array.from` と同じくコードポイントで数えるため、Web 版と同じ入力が同じミス数・正確率になります。
 
 ## 確認
 
 ```sh
-cd ios/TypleCore && swift test
+cd TypleCore && swift test        # 共通の規則
+node --test tests/                # 文言
+TYPLE_R=../typle-r node --test tests/   # 最初の単語リストの写しも
 ```
 
-- CI のワークフローはありません（v0.70.0 で削除）。`cd ios/TypleCore && swift test` と iPad シミュレーター向けのビルドは Mac の手元で行います。データの写しと文言は `npm test`（`tests/ios.test.cjs`）が確かめます。
-- `npm test` の `tests/ios.test.cjs` が、最初の単語リストのコピーが元と同じか、使っている文言が日本語・英語の両方にあり、プレースホルダーがそろっているかを確かめます。`src/plugins/packs` を変えたら `TypleCore/Sources/TypleCore/Resources` にコピーしてください。
+- CI のワークフローはありません（typle-r v0.70.0 で削除）。`cd TypleCore && swift test` と iPad シミュレーター向けのビルドは Mac の手元で行います。
+- `tests/strings.test.cjs` が、使っている文言が日本語・英語の両方にあり、プレースホルダーがそろっているかを確かめます。`TYPLE_R` に typle-r の手元のフォルダーを指定すると、最初の単語リストの写し（`TypleCore/Sources/TypleCore/Resources`）が typle-r の `src/plugins/packs` と同じかも確かめます。指定しなければ、このテストは飛ばします。
+
+## 単語リストを Web 版に合わせる
+
+`TypleCore/Sources/TypleCore/Resources` の `samples.json`・`countries.json`・`commands.json` は typle-r の `src/plugins/packs` の写しです。直接書き換えません。typle-r で変わったら写し、`TYPLE_R` を指定したテストで同じになったことを確かめます。
+
+```sh
+cp ../typle-r/src/plugins/packs/{samples,countries,commands}.json TypleCore/Sources/TypleCore/Resources/
+```
 
 ## 範囲外
 

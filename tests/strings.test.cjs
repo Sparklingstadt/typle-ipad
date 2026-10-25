@@ -3,9 +3,10 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 
-// The iPad app (ios/) is built on macOS only (no CI workflow since v0.70.0); these checks of its data run everywhere.
-const root = path.join(__dirname, '..')
-const ios = path.join(root, 'ios')
+// The iPad app is built on macOS only (no CI workflow since typle-r v0.70.0); these checks of its data run everywhere
+// with `node --test tests/`. TYPLE_R, a checkout of typle-r, also compares the starting lists with the web app's.
+const ios = path.join(__dirname, '..')
+const typleR = process.env.TYPLE_R ? path.resolve(process.env.TYPLE_R) : undefined
 
 function swiftFiles(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
@@ -38,10 +39,10 @@ function enumCases(sources, name) {
   return match[1].split(',').map(item => item.trim())
 }
 
-test('the iPad app bundles the same starting lists as the web app', () => {
+test('the iPad app bundles the same starting lists as the web app', { skip: !typleR && 'TYPLE_R is not set' }, () => {
   for (const name of ['samples.json', 'countries.json', 'commands.json']) {
     assert.equal(fs.readFileSync(path.join(ios, 'TypleCore/Sources/TypleCore/Resources', name), 'utf8'),
-      fs.readFileSync(path.join(root, 'src/plugins/packs', name), 'utf8'), `${name}: copy src/plugins/packs/${name} again`)
+      fs.readFileSync(path.join(typleR, 'src/plugins/packs', name), 'utf8'), `${name}: copy typle-r's src/plugins/packs/${name} again`)
   }
 })
 

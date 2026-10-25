@@ -1,4 +1,4 @@
-# The Xcode project for the iPad app. Generate it with `xcodegen generate` in this directory (see ios/README.md);
+# The Xcode project for the iPad app. Generate it with `xcodegen generate` in this directory (see README.md);
 # Typle.xcodeproj is not committed.
 name: Typle
 options:
