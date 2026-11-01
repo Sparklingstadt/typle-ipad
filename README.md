@@ -49,6 +49,7 @@ Web 版と同じ画面構成・色・部品です。上部バー（ブランド�
 
 - 2つのデータは別々で、切り替えてもコピーしません。
 - アカウントでも、この iPad と同じくすべての操作ができます。変更のたびに、読み込んだときの `revision` を付けてデータ全体を保存します。別の画面で先に保存されていたとき（`409 conflict`）は、最新を読み直して同じ変更をやり直します（3回まで）。
+- アカウントの単語パック（typle-r v0.91.0 から）は画面に出しませんが、読み込んだまま保存し、パックごとに単語リストを並べ替えたりしません。フォロー中の公式パックのリストは、サーバーが単語を空で返すため（typle-r v2.1.0 から）、同梱の公式パックのカタログ（`catalog.json`）から単語を戻して練習できるようにし、保存では単語を送りません。公式パックのリストは Web 版と同じく編集・削除できず（一覧に「公式」と出ます）、複製すると自分のリストとして編集できます。iPadで作ったリストは、保存のときにそのリストの名前のパックに入ります。一度も保存していないアカウントは、公式パックをすべてフォローした状態で始まります（Web 版の関心の既定がすべてを選ぶのと同じ）。
 - ログインは「一般」の「GitHub でログイン」で、システムのログイン画面（`ASWebAuthenticationSession`。Safari の GitHub のログインを使えます）が開きます。流れは [typle-r の README の「iPad と Mac と Android と Windows のログイン」](https://github.com/Sparklingstadt/typle-r#ipad-と-mac-と-android-と-windows-のログイン) にあります。受け取ったトークンは iPad の Keychain にだけ保存し、有効期限は30日です。使っているあいだは自動で延びます。期限が切れたら、もう一度ログインしてください。
 - ログアウトするとトークンを消して「この iPad」に戻ります。ログインしたまま「この iPad」に切り替え、あとで「アカウントに切り替える」で戻ることもできます。
 - 同じネットワークの Mac で Web 版（typle-r の `npm run dev`）を動かして試すときは、`http://<名前>.local:3000` も使えます。それ以外は HTTPS が必要です。GitHub の OAuth App の callback URL がその URL のものである必要があります（開発用ログインは iPad では使えません）。
@@ -58,7 +59,7 @@ Web 版と同じ画面構成・色・部品です。上部バー（ブランド�
 
 | 場所 | 内容 |
 |---|---|
-| `TypleCore/` | Foundation だけに依存する Swift Package。typle-r の `src/core` の入力判定・記録・ベスト・ランキング・単語リスト・端末・CSV と、最初の単語リスト（`src/plugins/packs` のコピー）。`swift test` で確認します |
+| `TypleCore/` | Foundation だけに依存する Swift Package。typle-r の `src/core` の入力判定・記録・ベスト・ランキング・単語リスト・端末・CSV と、公式パックのカタログ（`src/plugins/packs` から作る `catalog.json`）。`swift test` で確認します |
 | `Typle/` | SwiftUI のアプリ。`Storage/`（この iPad とアカウント、ログイン）、`Practice/`、`Lists/`、`Records/`、`Devices/`、`Resources/`（文言とアイコン） |
 | `project.yml` | XcodeGen の設定 |
 
@@ -71,18 +72,19 @@ Mac 版は typle-r v0.60.0 から `Typle/` と `TypleCore/` をそのまま使�
 ```sh
 cd TypleCore && swift test        # 共通の規則
 node --test tests/                # 文言
-TYPLE_R=../typle-r node --test tests/   # 最初の単語リストの写しも
+TYPLE_R=../typle-r node --test tests/   # 公式パックのカタログも
 ```
 
 - CI のワークフローはありません（typle-r v0.70.0 で削除）。`cd TypleCore && swift test` と iPad シミュレーター向けのビルドは Mac の手元で行います。
-- `tests/strings.test.cjs` が、使っている文言が日本語・英語の両方にあり、プレースホルダーがそろっているかを確かめます。`TYPLE_R` に typle-r の手元のフォルダーを指定すると、最初の単語リストの写し（`TypleCore/Sources/TypleCore/Resources`）が typle-r の `src/plugins/packs` と同じかも確かめます。指定しなければ、このテストは飛ばします。
+- `tests/strings.test.cjs` が、使っている文言が日本語・英語の両方にあり、プレースホルダーがそろっているかを確かめます。`TYPLE_R` に typle-r の手元のフォルダーを指定すると、公式パックのカタログ（`catalog.json`）が typle-r の `src/plugins/packs` から作ったものと同じかも確かめます。指定しなければ、このテストは飛ばします。
 
-## 単語リストを Web 版に合わせる
+## 公式パックを Web 版に合わせる
 
-`TypleCore/Sources/TypleCore/Resources` の `samples.json`・`countries.json`・`commands.json` は typle-r の `src/plugins/packs` の写しです。直接書き換えません。typle-r で変わったら写し、`TYPLE_R` を指定したテストで同じになったことを確かめます。
+`TypleCore/Sources/TypleCore/Resources/catalog.json` は、typle-r の `src/plugins/packs`（`commands/manifest.json` の順の各リスト）から作る公式パックのカタログです。Web 版の `officialPacks`・Go の `OfficialPacks` と同じパック・リスト・ID になります。直接書き換えず、typle-r で公式のリストが変わったら作り直し、`TYPLE_R` を指定したテストで同じになったことを確かめます。この端末で使う最初の単語リストも、このカタログのリストです。
 
 ```sh
-cp ../typle-r/src/plugins/packs/{samples,countries,commands}.json TypleCore/Sources/TypleCore/Resources/
+node scripts/catalog.cjs ../typle-r
+TYPLE_R=../typle-r node --test tests/
 ```
 
 ## 範囲外
