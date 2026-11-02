@@ -185,7 +185,15 @@ final class WordListTests: XCTestCase {
     XCTAssertEqual(listBest(list)?.time, 10)
     XCTAssertEqual(listRanking(list).ranked.map(\.id), ["n"])
     XCTAssertEqual(recordRows([list]).filter(\.best).map(\.record.id), ["n"])
+    XCTAssertEqual(listRanking(list).records.map(\.id), ["n"])
     XCTAssertEqual(normalRecords([normal, recall]).map(\.id), ["n"])
+    // A list with recall records only has no best and nothing ranked.
+    let onlyRecall = WordList(id: "b", name: "B", words: words, records: [recall], createdAt: "x")
+    XCTAssertNil(listBest(onlyRecall))
+    XCTAssertNil(listRanking(onlyRecall).best)
+    XCTAssertTrue(listRanking(onlyRecall).ranked.isEmpty)
+    XCTAssertTrue(listRanking(onlyRecall).records.isEmpty)
+    XCTAssertNil(listRanking(onlyRecall).lastPracticed)
   }
 
   // The category and tags (v0.78.0) are kept through a read, a save, an edit and a copy, and left out when there are none.
