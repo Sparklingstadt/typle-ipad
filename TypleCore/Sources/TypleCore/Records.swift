@@ -46,10 +46,15 @@ public func bestRecords(_ records: [StoredRecord], limit: Int = 5, order: RankOr
   Array(rankRecords(records, order: order).prefix(limit))
 }
 
+/// The records of normal runs. Records with a `mode`, such as recall, are not compared with them.
+public func normalRecords(_ records: [StoredRecord]) -> [StoredRecord] {
+  records.filter { $0.mode == nil }
+}
+
 /// Editing a list changes the task, so only runs at its current word count are compared. Records without a word
 /// count predate that field and cannot be matched. With no matching run, every record is compared instead.
 public func comparableRecords(_ list: WordList, _ records: [StoredRecord]? = nil) -> [StoredRecord] {
-  let records = records ?? list.records
+  let records = normalRecords(records ?? list.records)
   let same = records.filter { $0.wordCount == list.words.count }
   return same.isEmpty ? records : same
 }
@@ -61,8 +66,9 @@ public func listBest(_ list: WordList) -> StoredRecord? {
 
 /// The position of the list's best in `list.records`.
 func listBestIndex(_ list: WordList) -> Int? {
-  let same = list.records.indices.filter { list.records[$0].wordCount == list.words.count }
-  let candidates = same.isEmpty ? Array(list.records.indices) : same
+  let normal = list.records.indices.filter { list.records[$0].mode == nil }
+  let same = normal.filter { list.records[$0].wordCount == list.words.count }
+  let candidates = same.isEmpty ? normal : same
   return rankIndices(candidates.map { list.records[$0] }).first.map { candidates[$0] }
 }
 

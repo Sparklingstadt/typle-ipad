@@ -155,6 +155,14 @@ struct RecordRowView: View {
       VStack(alignment: .leading, spacing: 2) {
         HStack(spacing: 8) {
           Text(row.list.name).font(.system(size: 16)).lineLimit(1)
+          if record.mode == "recall" {
+            Text(L("records.recallBadge"))
+              .font(.system(size: 12, weight: .bold))
+              .foregroundStyle(Palette.mutedForeground)
+              .padding(.horizontal, 8)
+              .frame(height: 22)
+              .background(Palette.muted, in: Capsule())
+          }
           if row.best {
             Label(L("records.row.best"), systemImage: "trophy")
               .font(.system(size: 12, weight: .bold))
