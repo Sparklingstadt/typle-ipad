@@ -8,6 +8,8 @@ struct PracticeResultView: View {
   var list: WordList
   var session: TypingSession
   var device: PracticeDevice?
+  /// Runs are compared with runs of the same mode only.
+  var mode = PracticeMode.normal
   var record: StoredRecord?
   var saveState: SaveState
   var onRestart: () -> Void
@@ -22,7 +24,7 @@ struct PracticeResultView: View {
 
   private func compare() -> (rank: Int, comparison: Comparison) {
     let wordCount = list.words.count
-    let normal = recordsOfMode(list.records, .normal)
+    let normal = recordsOfMode(list.records, mode)
     let ranked = rankRecords(normal.filter { $0.wordCount == wordCount })
     let rank = record != nil && saveState == .saved ? (ranked.firstIndex { $0.id == record?.id } ?? -1) + 1 : 0
     guard let previous = ranked.first(where: { $0.id != record?.id }) else {
@@ -40,6 +42,14 @@ struct PracticeResultView: View {
     VStack(alignment: .leading, spacing: 20) {
       HStack(spacing: 12) {
         Text(L("practice.result.title")).font(.system(size: 26, weight: .bold))
+        if mode == .writing {
+          Text(L("practice.mode.writing"))
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(Palette.mutedForeground)
+            .padding(.horizontal, 10)
+            .frame(height: 28)
+            .background(Palette.muted, in: Capsule())
+        }
         if isBest {
           Label(L("practice.result.newBest"), systemImage: "trophy")
             .font(.system(size: 13, weight: .bold))
@@ -53,9 +63,13 @@ struct PracticeResultView: View {
       HStack(spacing: 12) {
         tile(L("practice.result.time"), Format.seconds(result.time), unit: L("practice.result.seconds"),
              note: note(compared.comparison), good: isBest, icon: faster ? "chart.line.downtrend.xyaxis" : nil)
-        tile(L("practice.result.accuracy"), Format.number(result.accuracy, digits: 2), unit: "%", note: L("practice.result.mistakes", result.mistakes))
-        tile(L("practice.result.speed"), typingSpeed(session, now: 0).map { "\($0)" } ?? "—", unit: L("practice.result.speedUnit"),
-             note: L("practice.result.correct", session.attempts - session.mistakes))
+        tile(L("practice.result.accuracy"), Format.number(result.accuracy, digits: 2), unit: "%",
+             note: L(mode == .writing ? "practice.result.writingMistakes" : "practice.result.mistakes", result.mistakes))
+        // Handwriting judges whole words, so it has no keys per minute.
+        if mode != .writing {
+          tile(L("practice.result.speed"), typingSpeed(session, now: 0).map { "\($0)" } ?? "—", unit: L("practice.result.speedUnit"),
+               note: L("practice.result.correct", session.attempts - session.mistakes))
+        }
         tile(L("practice.result.words"), "\(list.words.count)", unit: L("practice.result.wordUnit"), note: Format.device(device), icon: "keyboard")
       }
       Group {

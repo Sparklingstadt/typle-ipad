@@ -42,6 +42,8 @@ final class AppModel {
   var route: Route = .home
   /// The list the best records page shows, like `/rankings?list=<id>`.
   var rankingsList: String? = nil
+  /// The mode the best records page shows, like `/rankings?mode=writing`.
+  var rankingsMode = PracticeMode.normal
   /// A list another screen asked the practice screen to open, like `/play?list=<id>`.
   var practiceRequest: String? = nil
 
@@ -249,8 +251,9 @@ final class AppModel {
     route = .practice
   }
 
-  func showRankings(listId: String?) {
+  func showRankings(listId: String?, mode: PracticeMode = .normal) {
     rankingsList = listId
+    rankingsMode = mode
     route = .rankings
   }
 }

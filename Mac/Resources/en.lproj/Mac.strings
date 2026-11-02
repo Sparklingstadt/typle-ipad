@@ -21,3 +21,4 @@
 "errors.accountKeychainFailed" = "Could not keep the sign-in on this Mac.";
 "mac.menu.settings" = "Settings…";
 "mac.menu.go" = "Go";
+"practice.writing.systemHint" = "Write with the trackpad's handwriting or another handwriting input. A match moves on to the next word.";

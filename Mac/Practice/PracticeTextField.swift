@@ -14,6 +14,10 @@ struct PracticeTextField: NSViewRepresentable {
   var onComposingChange: (Bool) -> Void
   var onFocusChange: (Bool) -> Void
   var onEscape: () -> Void
+  /// Return, when nothing is being composed (Handwriting checks the word on it); typing leaves it out.
+  var onReturn: (() -> Void)? = nil
+  /// The language of the list in Handwriting. The Mac has no hint for an input source, so it is not used.
+  var language: String? = nil
 
   func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -70,7 +74,9 @@ struct PracticeTextField: NSViewRepresentable {
         return true
       case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertLineBreak(_:)),
            #selector(NSResponder.insertNewlineIgnoringFieldEditor(_:)), #selector(NSTextView.complete(_:)):
-        // Return does nothing; words advance when they are typed correctly. Esc's completion list is not wanted.
+        // Return does nothing in typing, where words advance when they are typed correctly; Handwriting checks the
+        // word. Esc's completion list is not wanted.
+        if selector != #selector(NSTextView.complete(_:)) && !textView.hasMarkedText() { parent.onReturn?() }
         return true
       default:
         return false

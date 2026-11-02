@@ -6,6 +6,10 @@ import TypleCore
 struct PracticeView: View {
   @Environment(AppModel.self) private var app
   @State private var model = PracticeModel()
+  @State private var choice = WritingChoice()
+  /// A change of practice mode asked for mid-run, waiting for the same confirmation as a change of list.
+  @State private var pendingWriting: Bool?
+  @Environment(\.scenePhase) private var scenePhase
   @State private var pickerOpen = false
   @State private var pendingSwitch: String?
   @State private var showAll = false
@@ -41,7 +45,7 @@ struct PracticeView: View {
       .background(Palette.page)
     }
     .sheet(isPresented: $pickerOpen, onDismiss: { if !model.finished { model.focusRequest += 1 } }) {
-      ListPickerSheet(lists: app.lists, selectedId: model.list(in: app.lists)?.id, onSelect: requestSwitch)
+      ListPickerSheet(lists: app.lists, selectedId: model.list(in: app.lists)?.id, writing: choice.writing, onSelect: requestSwitch)
     }
     .alert(L("practice.switch.title"), isPresented: Binding(get: { pendingSwitch != nil }, set: { if !$0 { pendingSwitch = nil } })) {
       Button(L("practice.switch.continue"), role: .cancel) { model.focusRequest += 1 }
@@ -52,7 +56,22 @@ struct PracticeView: View {
                app.lists.first { $0.id == pendingSwitch }?.name ?? ""))
       }
     }
+    .alert(L("practice.switch.title"), isPresented: Binding(get: { pendingWriting != nil }, set: { if !$0 { pendingWriting = nil } })) {
+      Button(L("practice.switch.continue"), role: .cancel) { model.focusRequest += 1 }
+      Button(L("practice.modeSwitch.confirm"), role: .destructive) {
+        if let writing = pendingWriting { choose(writing: writing) }
+      }
+    } message: {
+      if let current = model.list(in: app.lists) {
+        Text(L("practice.modeSwitch.description", current.name, model.session.index, current.words.count))
+      }
+    }
     .onAppear(perform: takeRequest)
+    // The clock of a Handwriting run stops while the app is not in front (typing has no pause yet).
+    .onChange(of: scenePhase) { if scenePhase != .active && model.mode == .writing { model.pause() } }
+    // A list that gains or loses its mark, or a run on a list that changed, starts in the mode it now has.
+    .onChange(of: choice.mode(for: model.list(in: app.lists))) { syncMode() }
+    .onChange(of: model.list(in: app.lists)?.writing) { syncMode() }
     #if DEBUG
     .task {
       // Screenshots of a run in progress or finished: `-TypleTyping hogefx` types as if from the keyboard.
@@ -101,7 +120,59 @@ struct PracticeView: View {
   private func switchTo(_ id: String) {
     pendingSwitch = nil
     showAll = false
-    model.restart(listId: id)
+    let list = app.lists.first { $0.id == id }
+    model.restart(listId: id, mode: choice.mode(for: list), language: list?.writing?.language)
+  }
+
+  /// Starts a run in the mode the list and the choice give, unless one is under way (it keeps its mode to the end).
+  private func syncMode() {
+    guard !model.running, !model.finished else { return }
+    let list = model.list(in: app.lists)
+    let mode = choice.mode(for: list)
+    if mode != model.mode || (mode == .writing && list?.writing?.language != model.language) {
+      model.restart(mode: mode, language: list?.writing?.language)
+    }
+  }
+
+  private func requestWriting(_ writing: Bool) {
+    guard writing != choice.writing else { return }
+    if model.running { pendingWriting = writing } else { choose(writing: writing) }
+  }
+
+  private func choose(writing: Bool) {
+    pendingWriting = nil
+    choice.writing = writing
+    let list = model.list(in: app.lists)
+    model.restart(mode: choice.mode(for: list), language: list?.writing?.language)
+  }
+
+  /// Typing or Handwriting, and how to write, for a list marked for Handwriting.
+  @ViewBuilder
+  private func modeBar(_ list: WordList) -> some View {
+    if let mark = list.writing {
+      let canvas = WritingRecognizer.supports(mark.language)
+      VStack(spacing: 8) {
+        HStack(spacing: 12) {
+          SegmentedPills(options: [(false, L("practice.mode.typing")), (true, L("practice.mode.writing"))],
+                         selection: Binding(get: { choice.writing }, set: { requestWriting($0) }))
+            .accessibilityLabel(L("practice.mode.label"))
+          if choice.writing {
+            SegmentedPills(options: canvas ? [(WritingMethod.canvas, L("practice.writing.canvas")), (.system, L("practice.writing.system"))]
+                                           : [(WritingMethod.system, L("practice.writing.system"))],
+                           selection: Binding(get: { canvas ? choice.method : .system }, set: { choice.method = $0 }))
+              .accessibilityLabel(L("practice.writing.methodLabel"))
+          }
+          Spacer(minLength: 0)
+        }
+        if choice.writing && !canvas {
+          Label(L("practice.writing.unsupported"), systemImage: "info.circle")
+            .font(.system(size: 12)).foregroundStyle(Palette.mutedForeground)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+      }
+      .padding(.horizontal, 24)
+      .padding(.top, 12)
+    }
   }
 
   // MARK: The practice card
@@ -110,10 +181,13 @@ struct PracticeView: View {
     VStack(spacing: 0) {
       header(list)
       Hairline()
+      modeBar(list)
       progress(list.words.count)
       if model.finished {
-        PracticeResultView(list: list, session: model.session, device: model.practiceDevice, record: model.record, saveState: model.saveState,
+        PracticeResultView(list: list, session: model.session, device: model.practiceDevice, mode: model.mode, record: model.record, saveState: model.saveState,
                            onRestart: { model.restart() }, onRetry: { model.retrySave(app: app) }, onChooseList: { pickerOpen = true })
+      } else if model.mode == .writing {
+        writing(list)
       } else {
         practice(list)
       }
@@ -260,6 +334,17 @@ struct PracticeView: View {
   }
 
   @ViewBuilder
+  private func writing(_ list: WordList) -> some View {
+    let canvas = list.writing.map { WritingRecognizer.supports($0.language) } ?? false
+    WritingPracticeView(list: list, model: model, method: canvas ? choice.method : .system, inputFocused: $inputFocused)
+    if app.liveStatsVisible {
+      LiveStatsView(session: model.session, showsSpeed: false).padding(.horizontal, 24).padding(.bottom, 20)
+    }
+    Hairline()
+    upcoming(list.words, index: model.session.index)
+  }
+
+  @ViewBuilder
   private func feedback(_ comparison: InputComparison) -> some View {
     Group {
       if let errorIndex = comparison.errorIndex {
@@ -362,7 +447,7 @@ struct PracticeView: View {
         }
         .padding(.leading, 8)
         ForEach(app.lists.prefix(8)) { item in
-          Button { requestSwitch(item.id) } label: { ListOptionRow(list: item, selected: item.id == list.id) }
+          Button { requestSwitch(item.id) } label: { ListOptionRow(list: item, selected: item.id == list.id, mode: choice.mode(for: item)) }
             .buttonStyle(.plain)
         }
         if app.lists.count > 8 {
@@ -376,11 +461,12 @@ struct PracticeView: View {
           Text(L("practice.aside.best")).font(.system(size: 15, weight: .bold))
           Text(list.name).font(.system(size: 12)).foregroundStyle(Palette.mutedForeground).lineLimit(1)
         }
-        let candidates = comparableRecords(list)
-        Text(candidates.count < recordsOfMode(list.records, .normal).count ? L("practice.aside.bestOrderAtCount", list.words.count) : L("practice.aside.bestOrder"))
+        let mode = model.mode
+        let candidates = comparableRecords(list, mode: mode)
+        Text(candidates.count < recordsOfMode(list.records, mode).count ? L("practice.aside.bestOrderAtCount", list.words.count) : L("practice.aside.bestOrder"))
           .font(.system(size: 12)).foregroundStyle(Palette.mutedForeground)
         BestRecordsView(records: candidates, highlightId: model.saveState == .saved ? model.record?.id : nil)
-        Button { app.showRankings(listId: list.id) } label: {
+        Button { app.showRankings(listId: list.id, mode: model.mode) } label: {
           HStack(spacing: 4) { Text(L("practice.aside.allBest")); Image(systemName: "arrow.right").font(.system(size: 11)) }
             .font(.system(size: 13, weight: .medium))
         }

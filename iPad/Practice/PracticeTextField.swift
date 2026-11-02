@@ -13,6 +13,10 @@ struct PracticeTextField: UIViewRepresentable {
   var onComposingChange: (Bool) -> Void
   var onFocusChange: (Bool) -> Void
   var onEscape: () -> Void
+  /// Return, when nothing is being composed (Handwriting checks the word on it); typing leaves it out.
+  var onReturn: (() -> Void)? = nil
+  /// The language of the list in Handwriting: the field asks for a keyboard (and Scribble) of that language.
+  var language: String? = nil
 
   func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -42,6 +46,7 @@ struct PracticeTextField: UIViewRepresentable {
   func updateUIView(_ field: PracticeUITextField, context: Context) {
     context.coordinator.parent = self
     field.placeholder = placeholder
+    field.preferredLanguage = language
     field.accessibilityLabel = placeholder
     field.onEscape = { [weak field] in
       guard field?.markedTextRange == nil else { return }
@@ -76,14 +81,24 @@ struct PracticeTextField: UIViewRepresentable {
 
     func textFieldDidBeginEditing(_ textField: UITextField) { parent.onFocusChange(true) }
     func textFieldDidEndEditing(_ textField: UITextField) { parent.onFocusChange(false) }
-    /// Return does nothing; words advance when they are typed correctly.
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool { false }
+    /// Return does nothing in typing, where words advance when they are typed correctly; Handwriting checks the word.
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+      if textField.markedTextRange == nil { parent.onReturn?() }
+      return false
+    }
   }
 }
 
 /// A text field that cannot be pasted or dropped into, and that hands Esc on a hardware keyboard to the practice.
 final class PracticeUITextField: UITextField, UITextDropDelegate {
   var onEscape: (() -> Void)?
+  var preferredLanguage: String?
+
+  /// An active keyboard of the preferred language, if the person has one.
+  override var textInputMode: UITextInputMode? {
+    guard let language = preferredLanguage else { return super.textInputMode }
+    return UITextInputMode.activeInputModes.first { $0.primaryLanguage?.hasPrefix(language) == true } ?? super.textInputMode
+  }
 
   override init(frame: CGRect) {
     super.init(frame: frame)

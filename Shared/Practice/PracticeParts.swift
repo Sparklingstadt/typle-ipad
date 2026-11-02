@@ -62,16 +62,20 @@ private struct Blink: ViewModifier {
 /// The live elapsed time, speed, accuracy and mistakes. Only this view ticks, five times a second, while a run goes on.
 struct LiveStatsView: View {
   var session: TypingSession
+  /// Handwriting judges whole words, so it has no keys per minute to show.
+  var showsSpeed = true
 
   var body: some View {
     let running = session.startedAt != nil && session.finishedAt == nil
     TimelineView(.periodic(from: .now, by: running ? 0.2 : 3600)) { context in
       let now = context.date.timeIntervalSince1970 * 1000
-      let elapsed = running ? max(0, now - (session.startedAt ?? now)) : 0
+      let elapsed = running ? elapsedTime(session, now: now) : 0
       let speed = running ? typingSpeed(session, now: now) : nil
       HStack(spacing: 0) {
         stat("timer", L("practice.stats.elapsed"), clock(elapsed))
-        stat("gauge.with.needle", L("practice.stats.speed"), speed.map { "\($0)" } ?? "—", unit: L("practice.stats.speedUnit"))
+        if showsSpeed {
+          stat("gauge.with.needle", L("practice.stats.speed"), speed.map { "\($0)" } ?? "—", unit: L("practice.stats.speedUnit"))
+        }
         stat("target", L("practice.stats.accuracy"), session.attempts > 0 ? formatAccuracy(sessionResult(session).accuracy) : "—")
         stat("xmark", L("practice.stats.mistakes"), "\(session.mistakes)")
       }
@@ -187,6 +191,8 @@ struct DeviceMenu: View {
 struct ListOptionRow: View {
   var list: WordList
   var selected: Bool
+  /// The mode the list would be practised in; its best is that mode's.
+  var mode = PracticeMode.normal
 
   var body: some View {
     HStack(spacing: 12) {
@@ -196,7 +202,7 @@ struct ListOptionRow: View {
       VStack(alignment: .leading, spacing: 1) {
         Text(list.name).font(.system(size: 15, weight: .medium)).foregroundStyle(Palette.foreground).lineLimit(2)
         Group {
-          if let best = listBest(list) {
+          if let best = listBest(list, mode: mode) {
             Text(L("practice.options.withBest", list.words.count, Format.seconds(best.time)))
           } else {
             Text(L("practice.options.noRecord", list.words.count))
@@ -221,6 +227,8 @@ struct ListPickerSheet: View {
   @Environment(\.dismiss) private var dismiss
   var lists: [WordList]
   var selectedId: String?
+  /// Whether Handwriting is chosen, so that marked lists show their Handwriting best.
+  var writing = false
   var onSelect: (String) -> Void
   @State private var query = ""
 
@@ -244,7 +252,7 @@ struct ListPickerSheet: View {
             Button {
               dismiss()
               onSelect(list.id)
-            } label: { ListOptionRow(list: list, selected: list.id == selectedId) }
+            } label: { ListOptionRow(list: list, selected: list.id == selectedId, mode: practiceMode(list, writing: writing)) }
               .buttonStyle(.plain)
           }
           if filtered.isEmpty {

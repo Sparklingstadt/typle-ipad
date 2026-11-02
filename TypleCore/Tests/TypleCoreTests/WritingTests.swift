@@ -115,4 +115,27 @@ final class WritingTests: XCTestCase {
     s = judge(s, ["cd"], 2000, false)
     XCTAssertEqual(sessionResult(s).accuracy, 50)
   }
+
+  func testUnmarkedListIsTyped() {
+    let unmarked = WordList(id: "a", name: "A", words: words, createdAt: "x")
+    var marked = unmarked
+    marked.writing = WritingMark(language: .en)
+    XCTAssertEqual(practiceMode(unmarked, writing: true), .normal)
+    XCTAssertEqual(practiceMode(marked, writing: true), .writing)
+    XCTAssertEqual(practiceMode(marked, writing: false), .normal)
+    XCTAssertEqual(practiceMode(nil, writing: true), .normal)
+  }
+
+  func testWritingCandidatesJoinsLines() {
+    XCTAssertEqual(writingCandidates([["I am", "l am"], ["a student."]]),
+                   ["I am", "l am", "a student.", "I ama student.", "I am a student."])
+    XCTAssertEqual(writingCandidates([["爱护", "爱护"]]), ["爱护"])
+    XCTAssertEqual(writingCandidates([]), [])
+  }
+
+  func testStaleRecognitionIsDropped() {
+    XCTAssertTrue(isCurrentRecognition(startedAt: (index: 0, generation: 3), now: (index: 0, generation: 3)))
+    XCTAssertFalse(isCurrentRecognition(startedAt: (index: 0, generation: 3), now: (index: 0, generation: 4)))
+    XCTAssertFalse(isCurrentRecognition(startedAt: (index: 0, generation: 3), now: (index: 1, generation: 3)))
+  }
 }

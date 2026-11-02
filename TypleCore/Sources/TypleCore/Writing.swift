@@ -133,3 +133,25 @@ public func skipWord(_ session: TypingSession, words: [Word], now: Double) -> Ty
   started.missed = false
   return advance(started, words: words, now: now)
 }
+
+/// How a list is practised (practiceMode in src/lib/writingMode.ts): a list without the mark is always typed, whatever
+/// was chosen before.
+public func practiceMode(_ list: WordList?, writing: Bool) -> PracticeMode {
+  list?.writing != nil && writing ? .writing : .normal
+}
+
+/// The candidates of a recognition, from each line's candidates (best first): every line's candidates, then, when the
+/// writing was read as several lines, the best of each line joined in order, without and with a space between.
+public func writingCandidates(_ lines: [[String]]) -> [String] {
+  var candidates = lines.flatMap { $0 }
+  let tops = lines.compactMap(\.first)
+  if tops.count > 1 { candidates += [tops.joined(), tops.joined(separator: " ")] }
+  var seen = Set<String>()
+  return candidates.filter { seen.insert($0).inserted }
+}
+
+/// A recognition result counts only for the word and the strokes it was started on: writing on, clearing the canvas,
+/// skipping or a match since then makes it stale.
+public func isCurrentRecognition(startedAt: (index: Int, generation: Int), now: (index: Int, generation: Int)) -> Bool {
+  startedAt == now
+}
