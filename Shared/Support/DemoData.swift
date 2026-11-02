@@ -34,6 +34,14 @@ enum DemoData {
       lists[2].records.append(StoredRecord(id: "demo-countries", time: 212.4, date: date(daysAgo: 5, hour: 20), mistakes: 14,
                                            accuracy: 88.2, device: device, wordCount: lists[2].words.count))
     }
+    // A list marked for Handwriting, first so that the practice page opens on it, with a Handwriting run.
+    var writing = WordList(id: "demo-writing", name: "中国語の基本の単語", words: [
+      Word(display: "爱护", input: "aihu", annotation: "大切にする"), Word(display: "学习", input: "xuexi", annotation: "学ぶ"),
+      Word(display: "你好", input: "nihao", annotation: "こんにちは"),
+    ], createdAt: date(daysAgo: 10, hour: 9), writing: WritingMark(language: .zhHans))
+    writing.records.append(StoredRecord(id: "demo-writing-1", time: 24.6, date: date(daysAgo: 1, hour: 21), mistakes: 1,
+                                        accuracy: 75, device: device, wordCount: 3, mode: "writing"))
+    lists.insert(writing, at: 0)
     return WorkspaceDocument(lists: lists, devices: [device])
   }
 }

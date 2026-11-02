@@ -21,3 +21,4 @@
 "errors.accountKeychainFailed" = "ログインの情報をこの Mac に保存できませんでした。";
 "mac.menu.settings" = "設定…";
 "mac.menu.go" = "移動";
+"practice.writing.systemHint" = "トラックパッドの手書き入力などで入力してください。合っていれば次の単語に進みます。";

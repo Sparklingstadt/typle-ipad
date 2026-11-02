@@ -21,6 +21,9 @@ struct ListEditorView: View {
   @State private var name = ""
   @State private var rows: [Row] = []
   @State private var saved: (String, [Word])?
+  /// The Handwriting mark being edited, and as it was when loaded or saved.
+  @State private var writing: WritingMark?
+  @State private var savedWriting: WritingMark?
   @State private var errorMessage: String?
   @State private var nameError: String?
   @State private var rowErrors: [UUID: String] = [:]
@@ -33,7 +36,7 @@ struct ListEditorView: View {
 
   private var original: WordList? { listId.flatMap { id in app.lists.first { $0.id == id } } }
   private var words: [Word] { rows.map(\.word) }
-  private var changed: Bool { saved.map { $0.0 != name || $0.1 != words } ?? false }
+  private var changed: Bool { saved.map { $0.0 != name || $0.1 != words || savedWriting != writing } ?? false }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -77,6 +80,7 @@ struct ListEditorView: View {
           .outlined(radius: Radius.lg, color: Palette.destructive.opacity(0.4))
       }
       nameCard
+      writingCard
       wordsCard
       if let original, !original.records.isEmpty, original.words.count != words.count, currentRecordCount(original) > 0 {
         Text(L("wordLists.editor.recount", original.words.count, words.count, currentRecordCount(original)))
@@ -115,6 +119,42 @@ struct ListEditorView: View {
         Text(nameError).font(.system(size: 12)).foregroundStyle(Palette.destructive)
       } else {
         Text(L("wordLists.editor.nameHelp")).font(.system(size: 12)).foregroundStyle(Palette.mutedForeground)
+      }
+    }
+    .padding(24)
+    .card()
+  }
+
+  /// The names of the recognition languages in their own language, the same in every display language (as the web app
+  /// shows them).
+  static let writingLanguageNames: [WritingLanguage: String] = [
+    .en: "English", .ja: "日本語", .zhHans: "中文（简体）", .zhHant: "中文（繁體）", .ko: "한국어",
+    .fr: "Français", .de: "Deutsch", .es: "Español", .ru: "Русский", .cs: "Čeština",
+  ]
+
+  private var writingCard: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Toggle(isOn: Binding(get: { writing != nil }, set: { on in
+        // Turned on, the language starts as the display language's, or English.
+        writing = on ? WritingMark(language: Localization.locale.language.languageCode?.identifier == "ja" ? .ja : .en) : nil
+      })) {
+        Text(L("wordLists.editor.writingToggle")).font(.system(size: 14, weight: .semibold))
+      }
+      Text(L("wordLists.editor.writingToggleHelp")).font(.system(size: 12)).foregroundStyle(Palette.mutedForeground)
+      if let mark = writing {
+        HStack(spacing: 12) {
+          Menu {
+            Picker(L("wordLists.editor.writingLanguage"), selection: Binding(get: { mark.language }, set: { writing = WritingMark(language: $0) })) {
+              ForEach(WritingLanguage.allCases, id: \.self) { language in
+                Text(Self.writingLanguageNames[language] ?? language.rawValue).tag(language)
+              }
+            }
+            .menuPicker()
+          } label: {
+            FilterLabel(name: L("wordLists.editor.writingLanguage"), value: Self.writingLanguageNames[mark.language] ?? mark.language.rawValue)
+          }
+          .plainMenu()
+        }
       }
     }
     .padding(24)
@@ -288,11 +328,13 @@ struct ListEditorView: View {
       name = original.name
       // An input equal to the word shown is shown as empty, as the web editor does.
       rows = original.words.map { Row(word: Word(display: $0.display, input: $0.input == $0.display ? "" : $0.input, annotation: $0.annotation)) }
+      writing = original.writing
     } else {
       rows = [Row(word: Word(display: "", input: ""))]
       focus = .name
     }
     saved = (name, words)
+    savedWriting = writing
   }
 
   private func leave() {
@@ -375,12 +417,13 @@ struct ListEditorView: View {
                         records: original?.records ?? [], createdAt: original?.createdAt ?? isoString(Date()),
                         // The iPad and Mac editors do not edit these yet, so they stay as saved.
                         category: original?.category, tags: original?.tags, group: original?.group, levels: original?.levels,
-                        packId: original?.packId)
+                        packId: original?.packId, writing: writing)
     saving = true
     Task {
       do {
         try await app.saveList(list, editing: original != nil)
         saved = (name, words)
+        savedWriting = writing
         app.navigate(.lists)
       } catch {
         errorMessage = errorText(error)

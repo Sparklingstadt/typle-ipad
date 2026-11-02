@@ -11,6 +11,9 @@ let package = Package(
     .target(name: "TypleCore", resources: [
       .copy("Resources/catalog.json"),
     ]),
-    .testTarget(name: "TypleCoreTests", dependencies: ["TypleCore"]),
+    .testTarget(name: "TypleCoreTests", dependencies: ["TypleCore"], resources: [
+      // Copies of typle-r's tests/fixtures, which tests/strings.test.cjs compares with typle-r (TYPLE_R).
+      .copy("Fixtures"),
+    ]),
   ]
 )

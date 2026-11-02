@@ -468,3 +468,34 @@
 "errors.accountUnreachable" = "Typle に接続できません。URL と通信状態を確認してください。";
 "errors.accountNotFound" = "Typle が見つかりません。URL を確認してください。";
 "errors.accountKeychainFailed" = "ログインの情報をこの iPad に保存できませんでした。";
+
+/* Typle Handwriting */
+"practice.mode.label" = "練習の方法";
+"practice.mode.typing" = "タイピング";
+"practice.mode.writing" = "Handwriting";
+"practice.writing.methodLabel" = "書き方";
+"practice.writing.canvas" = "画面に書く";
+"practice.writing.system" = "OS の手書き入力";
+"practice.writing.unsupported" = "この端末はこの言語の手書きを読み取れないため、OS の手書き入力を使います。";
+"practice.writing.copyThis" = "書き写す単語：%@";
+"practice.writing.canvasLabel" = "手書きの欄";
+"practice.writing.input" = "ここに手書きで入力";
+"practice.writing.undo" = "1画戻す";
+"practice.writing.clear" = "消す";
+"practice.writing.check" = "判定";
+"practice.writing.skip" = "飛ばす";
+"practice.writing.read" = "「%@」と読めました";
+"practice.writing.unreadable" = "読み取れませんでした";
+"practice.writing.canvasHint" = "見本を書き写してください。手を止めると読み取り、合っていれば次の単語に進みます。";
+"practice.writing.systemHint" = "スクリブルなどの手書きで入力してください。合っていれば次の単語に進みます。";
+"practice.modeSwitch.confirm" = "中断して切り替える";
+"practice.modeSwitch.description" = "「%1$@」の進捗（%2$ld / %3$ld 語）は記録されません。練習の方法を切り替えます。";
+"practice.result.writingMistakes" = "ミス %ld 回";
+"rankings.mode.label" = "練習のモード";
+"rankings.mode.normal" = "通常";
+"rankings.mode.recall" = "思い出す";
+"rankings.mode.writing" = "Handwriting";
+"records.writingBadge" = "Handwriting";
+"wordLists.editor.writingToggle" = "手書き練習（Typle Handwriting）に使う";
+"wordLists.editor.writingToggleHelp" = "このリストを手書きで練習できるようにします。認識する言語は手書きの文字を読み取るときに使います。";
+"wordLists.editor.writingLanguage" = "認識する言語";

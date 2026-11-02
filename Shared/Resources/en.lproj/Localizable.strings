@@ -468,3 +468,34 @@
 "errors.accountUnreachable" = "Cannot reach Typle. Check the URL and your connection.";
 "errors.accountNotFound" = "Typle was not found. Check the URL.";
 "errors.accountKeychainFailed" = "Could not keep the sign-in on this iPad.";
+
+/* Typle Handwriting */
+"practice.mode.label" = "Practice mode";
+"practice.mode.typing" = "Typing";
+"practice.mode.writing" = "Handwriting";
+"practice.writing.methodLabel" = "How to write";
+"practice.writing.canvas" = "Write on screen";
+"practice.writing.system" = "System handwriting";
+"practice.writing.unsupported" = "This device cannot read handwriting in this language, so the system's handwriting input is used.";
+"practice.writing.copyThis" = "Word to copy: %@";
+"practice.writing.canvasLabel" = "Handwriting area";
+"practice.writing.input" = "Write here by hand";
+"practice.writing.undo" = "Undo stroke";
+"practice.writing.clear" = "Clear";
+"practice.writing.check" = "Check";
+"practice.writing.skip" = "Skip";
+"practice.writing.read" = "Read as “%@”";
+"practice.writing.unreadable" = "Could not read it";
+"practice.writing.canvasHint" = "Copy the word. It is read when you stop writing, and a match moves on to the next word.";
+"practice.writing.systemHint" = "Write with Scribble or another handwriting input. A match moves on to the next word.";
+"practice.modeSwitch.confirm" = "Stop and switch";
+"practice.modeSwitch.description" = "Progress on “%1$@” (%2$ld / %3$ld words) will not be recorded. The practice mode will change.";
+"practice.result.writingMistakes" = "%ld mistakes";
+"rankings.mode.label" = "Practice mode";
+"rankings.mode.normal" = "Normal";
+"rankings.mode.recall" = "Recall";
+"rankings.mode.writing" = "Handwriting";
+"records.writingBadge" = "Handwriting";
+"wordLists.editor.writingToggle" = "Use for handwriting practice (Typle Handwriting)";
+"wordLists.editor.writingToggleHelp" = "Lets this list be practised by hand. The recognition language is used to read the handwriting.";
+"wordLists.editor.writingLanguage" = "Recognition language";

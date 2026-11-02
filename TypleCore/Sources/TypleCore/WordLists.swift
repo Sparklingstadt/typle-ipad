@@ -47,7 +47,8 @@ public func validateLists(_ lists: [WordList]) throws {
         (record.device.map { !isDevice($0) } ?? false) ||
         (record.accuracy.map { !$0.isFinite || $0 < 0 || $0 > 100 } ?? false) ||
         (record.mistakes.map { $0 < 0 } ?? false) ||
-        (record.wordCount.map { $0 < 1 } ?? false)
+        (record.wordCount.map { $0 < 1 } ?? false) ||
+        (record.mode.map { $0 != "recall" && $0 != "writing" } ?? false)
     }
     if corrupted { throw TypleError("savedDataCorrupted") }
     try validateList(list)
@@ -143,9 +144,9 @@ public func deleteList(_ lists: [WordList], id: String) throws -> [WordList] {
   return lists.filter { $0.id != id }
 }
 
-/// The records a list's best is taken from: runs at its current word count.
+/// The records a list's best is taken from: normal runs at its current word count.
 public func currentRecordCount(_ list: WordList) -> Int {
-  list.records.filter { $0.wordCount == list.words.count }.count
+  recordsOfMode(list.records, .normal).filter { $0.wordCount == list.words.count }.count
 }
 
 /// `suffix(n)` is the localized mark for the nth copy, such as （コピー） and （コピー2）.
@@ -166,6 +167,6 @@ public func duplicateList(_ lists: [WordList], id: String, copyId: String, suffi
   guard let source = lists.first(where: { $0.id == id }) else { throw TypleError("listDeleted") }
   if lists.count >= maxLists { throw TypleError("listLimit", ["max": String(maxLists)]) }
   let copy = WordList(id: copyId, name: copyName(lists, source.name, suffix: suffix), words: source.words, createdAt: isoString(now),
-                      category: source.category, tags: source.tags)
+                      category: source.category, tags: source.tags, writing: source.writing)
   return (lists + [copy], copy)
 }
