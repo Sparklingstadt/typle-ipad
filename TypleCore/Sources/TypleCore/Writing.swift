@@ -7,6 +7,35 @@ public enum WritingLanguage: String, Codable, CaseIterable, Sendable {
   case en, ja, zhHans = "zh-Hans", zhHant = "zh-Hant", ko, fr, de, es, ru, cs
 }
 
+/// The mark of a list that may be practised by handwriting. Only `language` is allowed (isWritingMark).
+public struct WritingMark: Codable, Hashable, Sendable {
+  public var language: WritingLanguage
+
+  public init(language: WritingLanguage) {
+    self.language = language
+  }
+
+  private struct AnyKey: CodingKey {
+    var stringValue: String
+    var intValue: Int? { nil }
+    init(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { nil }
+  }
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: AnyKey.self)
+    guard container.allKeys.map(\.stringValue) == ["language"] else {
+      throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "writing has only a language"))
+    }
+    language = try container.decode(WritingLanguage.self, forKey: AnyKey(stringValue: "language"))
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: AnyKey.self)
+    try container.encode(language, forKey: AnyKey(stringValue: "language"))
+  }
+}
+
 private let spaceless: Set<WritingLanguage> = [.ja, .zhHans, .zhHant]
 
 /// NFC, trimmed, runs of white space as one space; none at all for languages that are written without spaces.

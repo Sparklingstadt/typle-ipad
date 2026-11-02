@@ -47,7 +47,8 @@ public func validateLists(_ lists: [WordList]) throws {
         (record.device.map { !isDevice($0) } ?? false) ||
         (record.accuracy.map { !$0.isFinite || $0 < 0 || $0 > 100 } ?? false) ||
         (record.mistakes.map { $0 < 0 } ?? false) ||
-        (record.wordCount.map { $0 < 1 } ?? false)
+        (record.wordCount.map { $0 < 1 } ?? false) ||
+        (record.mode.map { $0 != "recall" && $0 != "writing" } ?? false)
     }
     if corrupted { throw TypleError("savedDataCorrupted") }
     try validateList(list)
@@ -166,6 +167,6 @@ public func duplicateList(_ lists: [WordList], id: String, copyId: String, suffi
   guard let source = lists.first(where: { $0.id == id }) else { throw TypleError("listDeleted") }
   if lists.count >= maxLists { throw TypleError("listLimit", ["max": String(maxLists)]) }
   let copy = WordList(id: copyId, name: copyName(lists, source.name, suffix: suffix), words: source.words, createdAt: isoString(now),
-                      category: source.category, tags: source.tags)
+                      category: source.category, tags: source.tags, writing: source.writing)
   return (lists + [copy], copy)
 }
