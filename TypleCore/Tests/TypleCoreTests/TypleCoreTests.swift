@@ -215,7 +215,7 @@ final class WordListTests: XCTestCase {
     XCTAssertEqual(copy.tags, ["Go"])
     XCTAssertTrue(matchesQuery(saved[0], "語学"))
     // Every initial list has the labels of its official pack (since typle-r v0.101.1).
-    XCTAssertEqual(initialLists().filter { $0.category != nil && !($0.tags ?? []).isEmpty }.count, 86)
+    XCTAssertEqual(initialLists().filter { $0.category != nil && !($0.tags ?? []).isEmpty }.count, 89)
     XCTAssertThrowsError(try validateLists([WordList(id: "a", name: "A", words: words, createdAt: "x", tags: [String(repeating: "t", count: 51)])]))
   }
 
@@ -230,7 +230,7 @@ final class WordListTests: XCTestCase {
     XCTAssertNil(try duplicateList(decoded.document.lists, id: "x", copyId: "z", suffix: { _ in "（コピー）" }).copy.group)
     // The initial lists come from the official packs, which hold the groups; the levels stay on the lists.
     XCTAssertEqual(initialLists().filter { $0.group != nil }.count, 0)
-    XCTAssertEqual(initialLists().filter { $0.levels != nil }.count, 68)
+    XCTAssertEqual(initialLists().filter { $0.levels != nil }.count, 71)
   }
 
   func testWorkspaceFileRoundTrip() throws {
@@ -271,7 +271,7 @@ final class WordListTests: XCTestCase {
     XCTAssertTrue(empty.document.lists.allSatisfy(\.isFollowed))
     XCTAssertEqual(empty.revision, 0)
     let first = try XCTUnwrap(JSONSerialization.jsonObject(with: try encodeAccountWorkspace(empty)) as? [String: Any])
-    XCTAssertEqual((first["packs"] as? [Any])?.count, 40)
+    XCTAssertEqual((first["packs"] as? [Any])?.count, 41)
     XCTAssertTrue((first["lists"] as? [[String: Any]])?.allSatisfy { ($0["words"] as? [Any])?.isEmpty == true } ?? false)
 
     for invalid in ["{}", #"{"lists":[],"devices":[],"revision":-1,"accountId":"github:1"}"#,
@@ -287,8 +287,8 @@ final class WordListTests: XCTestCase {
     let lists = initialLists()
     // Since v0.85.0 the initial lists are the lists of the sparklingstadt account, in its order.
     XCTAssertEqual(lists.map(\.id).prefix(2), ["8f3cf116-1f9f-4579-a071-e600094b104d", "ef974a4b-3c7a-4eeb-9979-6721a0a1c81a"])
-    XCTAssertEqual(lists.count, 86)
-    XCTAssertEqual([lists[9].id, lists[10].id, lists.last?.id], ["arch-linux", "arch-linux-beginner", "chinese-hsk6-words-2"])
+    XCTAssertEqual(lists.count, 89)
+    XCTAssertEqual([lists[9].id, lists[10].id, lists.last?.id], ["arch-linux", "arch-linux-beginner", "postgresql-error-codes-advanced"])
     XCTAssertNoThrow(try validateLists(lists))
   }
 }
