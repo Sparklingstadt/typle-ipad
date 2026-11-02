@@ -61,7 +61,7 @@ test('the apps judge handwriting with the same cases as the web app', { skip: !t
 test('the apps have Japanese and English text for every key they use, with the same placeholders', () => {
   const files = ['Shared', 'iPad', 'Mac', 'TypleCore/Sources'].flatMap(dir => swiftFiles(path.join(root, dir)))
   const sources = files.map(file => fs.readFileSync(file, 'utf8')).join('\n')
-  const dynamic = { 'wordLists.order.': 'ListOrder', 'rankings.list.sorts.': 'ListSort', 'settings.languageNames.': 'AppLanguage', 'settings.languages.': 'AppLanguage' }
+  const dynamic = { 'wordLists.order.': 'ListOrder', 'rankings.list.sorts.': 'ListSort', 'settings.languageNames.': 'AppLanguage', 'settings.languages.': 'AppLanguage', 'rankings.mode.': 'PracticeMode' }
   const used = new Set()
   for (const [, argument] of sources.matchAll(/\bL\(((?:"(?:[^"\\]|\\.)*"|[^,()"])*)/g)) {
     for (const [, key] of argument.matchAll(/"([^"]*)"/g)) {

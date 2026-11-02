@@ -66,7 +66,11 @@ struct PracticeView: View {
         Text(L("practice.modeSwitch.description", current.name, model.session.index, current.words.count))
       }
     }
-    .onAppear(perform: takeRequest)
+    .onAppear {
+      takeRequest()
+      // The mode chosen on an earlier visit, for the list now shown.
+      syncMode()
+    }
     // The clock of a Handwriting run stops while the app is not in front (typing has no pause yet).
     .onChange(of: scenePhase) { if scenePhase != .active && model.mode == .writing { model.pause() } }
     // A list that gains or loses its mark, or a run on a list that changed, starts in the mode it now has.
@@ -102,7 +106,10 @@ struct PracticeView: View {
     #endif
     .onChange(of: app.practiceRequest) { takeRequest() }
     // Another store has other lists; a run on a list that is gone cannot be saved.
-    .onChange(of: app.store.accountId) { model.restart(listId: app.lists.first?.id) }
+    .onChange(of: app.store.accountId) {
+      let list = app.lists.first
+      model.restart(listId: list?.id, mode: choice.mode(for: list), language: list?.writing?.language)
+    }
   }
 
   private var empty: some View {
