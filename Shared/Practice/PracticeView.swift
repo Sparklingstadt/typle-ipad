@@ -143,6 +143,13 @@ struct PracticeView: View {
     model.restart(listId: id, mode: choice.mode(for: list), language: list?.writing?.language)
   }
 
+  /// Starts again on the same list, in the mode it has now: a mark taken off or put on during the last run counts from
+  /// the next one.
+  private func restartRun() {
+    let list = model.list(in: app.lists)
+    model.restart(mode: choice.mode(for: list), language: list?.writing?.language)
+  }
+
   /// Starts a run in the mode the list and the choice give, unless one is under way (it keeps its mode to the end).
   private func syncMode() {
     guard !model.running, !model.finished else { return }
@@ -204,7 +211,7 @@ struct PracticeView: View {
       progress(list.words.count)
       if model.finished {
         PracticeResultView(list: list, session: model.session, device: model.practiceDevice, mode: model.mode, record: model.record, saveState: model.saveState,
-                           onRestart: { model.restart() }, onRetry: { model.retrySave(app: app) }, onChooseList: { pickerOpen = true })
+                           onRestart: { restartRun() }, onRetry: { model.retrySave(app: app) }, onChooseList: { pickerOpen = true })
       } else if model.mode == .writing {
         writing(list)
       } else {
@@ -241,7 +248,7 @@ struct PracticeView: View {
       .buttonStyle(.typle(.ghost, size: .iconLg))
       .accessibilityLabel(L("practice.header.liveStats"))
       .accessibilityValue(app.liveStatsVisible ? L("common.on") : L("common.off"))
-      Button { model.restart() } label: {
+      Button { restartRun() } label: {
         HStack(spacing: 8) {
           Label(L("practice.header.restartShort"), systemImage: "arrow.counterclockwise")
           Kbd(text: "Esc")
@@ -330,7 +337,7 @@ struct PracticeView: View {
           inputFocused = focused
           if focused { focusedOnce = true }
         },
-        onEscape: { model.restart() })
+        onEscape: { restartRun() })
         .frame(height: 56)
         .background(Palette.card, in: RoundedRectangle(cornerRadius: Radius.lg))
         .overlay(RoundedRectangle(cornerRadius: Radius.lg).strokeBorder(invalid ? Palette.destructive : inputFocused ? Palette.primary : Palette.input, lineWidth: 2))
@@ -355,7 +362,7 @@ struct PracticeView: View {
   @ViewBuilder
   private func writing(_ list: WordList) -> some View {
     let canvas = list.writing.map { WritingRecognizer.supports($0.language) } ?? false
-    WritingPracticeView(list: list, model: model, method: canvas ? choice.method : .system, inputFocused: $inputFocused)
+    WritingPracticeView(list: list, model: model, method: canvas ? choice.method : .system, inputFocused: $inputFocused, onRestart: restartRun)
     if app.liveStatsVisible {
       LiveStatsView(session: model.session, showsSpeed: false).padding(.horizontal, 24).padding(.bottom, 20)
     }

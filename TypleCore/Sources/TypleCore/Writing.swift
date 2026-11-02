@@ -150,8 +150,16 @@ public func writingCandidates(_ lines: [[String]]) -> [String] {
   return candidates.filter { seen.insert($0).inserted }
 }
 
-/// A recognition result counts only for the word and the strokes it was started on: writing on, clearing the canvas,
-/// skipping or a match since then makes it stale.
-public func isCurrentRecognition(startedAt: (index: Int, generation: Int), now: (index: Int, generation: Int)) -> Bool {
-  startedAt == now
+/// What a recognition was started on: the run, the word and the strokes. Its result counts only if none of them has
+/// changed since: writing on, clearing the canvas, skipping, a match or a restart makes it stale.
+public struct RecognitionToken: Equatable, Sendable {
+  public var run: Int
+  public var index: Int
+  public var generation: Int
+
+  public init(run: Int, index: Int, generation: Int) {
+    self.run = run
+    self.index = index
+    self.generation = generation
+  }
 }

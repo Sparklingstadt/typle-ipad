@@ -134,8 +134,11 @@ final class WritingTests: XCTestCase {
   }
 
   func testStaleRecognitionIsDropped() {
-    XCTAssertTrue(isCurrentRecognition(startedAt: (index: 0, generation: 3), now: (index: 0, generation: 3)))
-    XCTAssertFalse(isCurrentRecognition(startedAt: (index: 0, generation: 3), now: (index: 0, generation: 4)))
-    XCTAssertFalse(isCurrentRecognition(startedAt: (index: 0, generation: 3), now: (index: 1, generation: 3)))
+    let token = RecognitionToken(run: 1, index: 0, generation: 3)
+    XCTAssertTrue(token == RecognitionToken(run: 1, index: 0, generation: 3))
+    XCTAssertFalse(token == RecognitionToken(run: 1, index: 0, generation: 4))
+    XCTAssertFalse(token == RecognitionToken(run: 1, index: 1, generation: 3))
+    // A restart is another run, even on the same word with the same strokes count.
+    XCTAssertFalse(token == RecognitionToken(run: 2, index: 0, generation: 3))
   }
 }

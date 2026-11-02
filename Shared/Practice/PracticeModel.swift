@@ -25,6 +25,8 @@ final class PracticeModel {
   private(set) var language = WritingLanguage.en
   /// What the last check of a Handwriting word read, shown until the word is judged again or another starts.
   private(set) var writingFeedback: WritingFeedback? = nil
+  /// Counts restarts, so that a recognition started in one run never judges the next.
+  private(set) var run = 0
 
   enum WritingFeedback: Equatable {
     case read(String)
@@ -46,6 +48,7 @@ final class PracticeModel {
     if let language { self.language = language }
     session = TypingSession()
     writingFeedback = nil
+    run += 1
     practiceDevice = nil
     composing = false
     record = nil
@@ -74,21 +77,22 @@ final class PracticeModel {
 
   // MARK: Handwriting
 
-  private var now: Double { (Date().timeIntervalSince1970 * 1000).rounded() }
+  var now: Double { (Date().timeIntervalSince1970 * 1000).rounded() }
 
   /// Runs the clock from the first stroke, on the device chosen then.
   func beginWriting(device: PracticeDevice?) {
-    guard record == nil, !finished else { return }
+    guard mode == .writing, record == nil, !finished else { return }
     if session.startedAt == nil { practiceDevice = device }
     session = startWriting(session, now: now)
   }
 
-  /// Judges what was written. A silent check (after a pause in writing, or as the field changes) only moves on.
-  func judge(_ candidates: [String], list: WordList, explicit: Bool, device: PracticeDevice?, app: AppModel) {
-    guard record == nil, !finished else { return }
+  /// Judges what was written. A silent check (after a pause in writing, or as the field changes) only moves on. `at` is
+  /// when the writing was done, such as the end of the last stroke, so that the wait for a silent reading is not timed.
+  func judge(_ candidates: [String], list: WordList, explicit: Bool, device: PracticeDevice?, app: AppModel, at time: Double? = nil) {
+    guard mode == .writing, record == nil, !finished else { return }
     if session.startedAt == nil { practiceDevice = device }
     let index = session.index
-    let next = judgeWriting(session, words: list.words, candidates: candidates, now: now, language: language,
+    let next = judgeWriting(session, words: list.words, candidates: candidates, now: time ?? now, language: language,
                             options: TypingOptions(), explicit: explicit)
     if next.index != index || next.finishedAt != nil {
       writingFeedback = nil
@@ -100,7 +104,7 @@ final class PracticeModel {
   }
 
   func skip(list: WordList, device: PracticeDevice?, app: AppModel) {
-    guard record == nil, !finished else { return }
+    guard mode == .writing, record == nil, !finished else { return }
     if session.startedAt == nil { practiceDevice = device }
     writingFeedback = nil
     finish(skipWord(session, words: list.words, now: now), list: list, app: app)

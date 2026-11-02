@@ -11,11 +11,17 @@ struct WritingPracticeView: View {
   var method: WritingMethod
   /// Whether the field had focus, for the resume button over the word, as in typing.
   @Binding var inputFocused: Bool
+  /// Esc in the field: starts again in the mode the list has now.
+  var onRestart: () -> Void
 
   @State private var strokes: [WritingStroke] = []
   /// Counts changes to the strokes, so that a reading of older strokes is dropped.
   @State private var generation = 0
   @State private var reading: Task<Void, Never>?
+  /// When the last stroke ended: a silent match counts from then, not from when Vision finished.
+  @State private var strokeEnded: Double?
+  /// The strokes an explicit check is reading, so that pressing 判定 again (or holding Return) counts them once.
+  @State private var checking: RecognitionToken?
   @State private var canvasSize = CGSize(width: 600, height: 200)
   @State private var text = ""
 
@@ -60,6 +66,7 @@ struct WritingPracticeView: View {
       model.beginWriting(device: app.chosenPracticeDevice)
     }, onStrokeEnd: {
       generation += 1
+      strokeEnded = model.now
       readLater()
     })
     .frame(height: 200)
@@ -79,15 +86,23 @@ struct WritingPracticeView: View {
     }
   }
 
+  private var token: RecognitionToken { RecognitionToken(run: model.run, index: model.session.index, generation: generation) }
+
   private func read(explicit: Bool) async {
-    let started = (index: model.session.index, generation: generation)
+    let started = token
     guard !strokes.isEmpty, let image = WritingCanvas.image(of: strokes, size: canvasSize) else {
       if explicit { model.judge([], list: list, explicit: true, device: app.chosenPracticeDevice, app: app) }
       return
     }
+    if explicit {
+      guard checking != started else { return }
+      checking = started
+    }
     let candidates = await WritingRecognizer.recognize(image, language: model.language)
-    guard isCurrentRecognition(startedAt: started, now: (index: model.session.index, generation: generation)) else { return }
-    model.judge(candidates, list: list, explicit: explicit, device: app.chosenPracticeDevice, app: app)
+    guard started == token else { return }
+    // A silent match is timed at the end of the writing; a check, when it was asked for.
+    model.judge(candidates, list: list, explicit: explicit, device: app.chosenPracticeDevice, app: app,
+                at: explicit ? nil : strokeEnded)
   }
 
   private func clear() {
@@ -113,7 +128,7 @@ struct WritingPracticeView: View {
         inputFocused = focused
         if !focused { model.pause() }
       },
-      onEscape: { model.restart() },
+      onEscape: { onRestart() },
       onReturn: { model.judge([text], list: list, explicit: true, device: app.chosenPracticeDevice, app: app) },
       language: model.language.rawValue)
       .frame(height: 56)
@@ -146,6 +161,8 @@ struct WritingPracticeView: View {
           reading?.cancel()
           Task { await read(explicit: true) }
         case .system:
+          // What is still being composed is not written yet, as Return in the field waits for it.
+          guard !model.composing else { return }
           model.judge([text], list: list, explicit: true, device: app.chosenPracticeDevice, app: app)
         }
       } label: {
