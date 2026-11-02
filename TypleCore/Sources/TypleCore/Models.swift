@@ -68,6 +68,19 @@ public struct StoredRecord: Codable, Hashable, Sendable {
     self.wordCount = wordCount
     self.mode = mode
   }
+
+  /// `"mode": null` is refused, as the web app and Go do: the key is either absent or holds a mode.
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    id = try container.decodeIfPresent(String.self, forKey: .id)
+    time = try container.decode(Double.self, forKey: .time)
+    date = try container.decode(String.self, forKey: .date)
+    mistakes = try container.decodeIfPresent(Int.self, forKey: .mistakes)
+    accuracy = try container.decodeIfPresent(Double.self, forKey: .accuracy)
+    device = try container.decodeIfPresent(PracticeDevice.self, forKey: .device)
+    wordCount = try container.decodeIfPresent(Int.self, forKey: .wordCount)
+    mode = container.contains(.mode) ? try container.decode(String.self, forKey: .mode) : nil
+  }
 }
 
 public struct WordList: Codable, Hashable, Identifiable, Sendable {
@@ -88,10 +101,12 @@ public struct WordList: Codable, Hashable, Identifiable, Sendable {
   public var packId: String?
   /// Set on the lists of a followed official pack: the official list it is kept equal to (src/core/followedPacks.ts).
   public var origin: ListOrigin?
+  /// Set when the author lets the list be practised by handwriting (Typle Handwriting); left out otherwise.
+  public var writing: WritingMark?
 
   public init(id: String, name: String, words: [Word], records: [StoredRecord] = [], createdAt: String,
               category: String? = nil, tags: [String]? = nil, group: String? = nil, levels: [String]? = nil,
-              packId: String? = nil, origin: ListOrigin? = nil) {
+              packId: String? = nil, origin: ListOrigin? = nil, writing: WritingMark? = nil) {
     self.id = id
     self.name = name
     self.category = category
@@ -103,6 +118,24 @@ public struct WordList: Codable, Hashable, Identifiable, Sendable {
     self.createdAt = createdAt
     self.packId = packId
     self.origin = origin
+    self.writing = writing
+  }
+
+  /// A `writing` key must hold a valid mark (null is refused, as isWritingMark does in the web app).
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    id = try container.decode(String.self, forKey: .id)
+    name = try container.decode(String.self, forKey: .name)
+    category = try container.decodeIfPresent(String.self, forKey: .category)
+    tags = try container.decodeIfPresent([String].self, forKey: .tags)
+    group = try container.decodeIfPresent(String.self, forKey: .group)
+    levels = try container.decodeIfPresent([String].self, forKey: .levels)
+    words = try container.decode([Word].self, forKey: .words)
+    records = try container.decode([StoredRecord].self, forKey: .records)
+    createdAt = try container.decode(String.self, forKey: .createdAt)
+    packId = try container.decodeIfPresent(String.self, forKey: .packId)
+    origin = try container.decodeIfPresent(ListOrigin.self, forKey: .origin)
+    writing = container.contains(.writing) ? try container.decode(WritingMark.self, forKey: .writing) : nil
   }
 
   /// A list of a followed official pack, which only the catalog changes (the web app refuses to edit it).

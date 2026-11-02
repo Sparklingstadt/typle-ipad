@@ -184,9 +184,10 @@ final class WordListTests: XCTestCase {
     let list = WordList(id: "a", name: "A", words: words, records: [normal, recall], createdAt: "x")
     XCTAssertEqual(listBest(list)?.time, 10)
     XCTAssertEqual(listRanking(list).ranked.map(\.id), ["n"])
-    XCTAssertEqual(recordRows([list]).filter(\.best).map(\.record.id), ["n"])
+    // Each mode has its own best in the records list (typle-r v2.10.0).
+    XCTAssertEqual(recordRows([list]).filter(\.best).map(\.record.id), ["r", "n"])
     XCTAssertEqual(listRanking(list).records.map(\.id), ["n"])
-    XCTAssertEqual(normalRecords([normal, recall]).map(\.id), ["n"])
+    XCTAssertEqual(recordsOfMode([normal, recall], .normal).map(\.id), ["n"])
     // A list with recall records only has no best and nothing ranked.
     let onlyRecall = WordList(id: "b", name: "B", words: words, records: [recall], createdAt: "x")
     XCTAssertNil(listBest(onlyRecall))

@@ -19,6 +19,19 @@ final class PracticeModel {
   private(set) var record: StoredRecord? = nil
   private(set) var saveState = SaveState.idle
   var focusRequest = 0
+  /// How this run is practised; it stays for the run even if the list's mark is taken off meanwhile.
+  private(set) var mode = PracticeMode.normal
+  /// The language a Handwriting run is read in, taken from the list when the run starts.
+  private(set) var language = WritingLanguage.en
+  /// What the last check of a Handwriting word read, shown until the word is judged again or another starts.
+  private(set) var writingFeedback: WritingFeedback? = nil
+  /// Counts restarts, so that a recognition started in one run never judges the next.
+  private(set) var run = 0
+
+  enum WritingFeedback: Equatable {
+    case read(String)
+    case unreadable
+  }
 
   var finished: Bool { session.finishedAt != nil }
   var started: Bool { session.startedAt != nil }
@@ -28,10 +41,14 @@ final class PracticeModel {
     lists.first { $0.id == listId } ?? lists.first
   }
 
-  /// Starts again, on another list when given.
-  func restart(listId: String? = nil) {
+  /// Starts again, on another list and in another mode when given.
+  func restart(listId: String? = nil, mode: PracticeMode? = nil, language: WritingLanguage? = nil) {
     if let listId { self.listId = listId }
+    if let mode { self.mode = mode }
+    if let language { self.language = language }
     session = TypingSession()
+    writingFeedback = nil
+    run += 1
     practiceDevice = nil
     composing = false
     record = nil
@@ -54,6 +71,55 @@ final class PracticeModel {
     listId = list.id
     session = next
     guard next.finishedAt != nil, let record = try? makeRecord(next, wordCount: list.words.count, id: randomId(), device: practiceDevice) else { return }
+    self.record = record
+    save(record, listId: list.id, app: app)
+  }
+
+  // MARK: Handwriting
+
+  var now: Double { (Date().timeIntervalSince1970 * 1000).rounded() }
+
+  /// Runs the clock from the first stroke, on the device chosen then.
+  func beginWriting(device: PracticeDevice?) {
+    guard mode == .writing, record == nil, !finished else { return }
+    if session.startedAt == nil { practiceDevice = device }
+    session = startWriting(session, now: now)
+  }
+
+  /// Judges what was written. A silent check (after a pause in writing, or as the field changes) only moves on. `at` is
+  /// when the writing was done, such as the end of the last stroke, so that the wait for a silent reading is not timed.
+  func judge(_ candidates: [String], list: WordList, explicit: Bool, device: PracticeDevice?, app: AppModel, at time: Double? = nil) {
+    guard mode == .writing, record == nil, !finished else { return }
+    if session.startedAt == nil { practiceDevice = device }
+    let index = session.index
+    let next = judgeWriting(session, words: list.words, candidates: candidates, now: time ?? now, language: language,
+                            options: TypingOptions(), explicit: explicit)
+    if next.index != index || next.finishedAt != nil {
+      writingFeedback = nil
+    } else if explicit {
+      let read = candidates.first { !normalizeWriting($0, language: language).isEmpty }
+      writingFeedback = read.map { .read($0) } ?? .unreadable
+    }
+    finish(next, list: list, app: app)
+  }
+
+  func skip(list: WordList, device: PracticeDevice?, app: AppModel) {
+    guard mode == .writing, record == nil, !finished else { return }
+    if session.startedAt == nil { practiceDevice = device }
+    writingFeedback = nil
+    finish(skipWord(session, words: list.words, now: now), list: list, app: app)
+  }
+
+  /// Stops the clock while the app is in the background or the field has lost focus.
+  func pause() {
+    session = pauseSession(session, now: now)
+  }
+
+  private func finish(_ next: TypingSession, list: WordList, app: AppModel) {
+    listId = list.id
+    session = next
+    guard next.finishedAt != nil,
+          let record = try? makeRecord(next, wordCount: list.words.count, id: randomId(), device: practiceDevice, mode: mode) else { return }
     self.record = record
     save(record, listId: list.id, app: app)
   }

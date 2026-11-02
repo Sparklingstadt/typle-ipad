@@ -2,11 +2,26 @@ import Foundation
 
 // src/core/records.ts
 
-public func makeRecord(_ session: TypingSession, wordCount: Int, id: String, device: PracticeDevice?) throws -> StoredRecord {
+/// How a run was practised: normal typing (no `mode`), recall (typed from memory) or writing (Typle Handwriting).
+public enum PracticeMode: String, CaseIterable, Sendable {
+  case normal, recall, writing
+}
+
+public func recordMode(_ record: StoredRecord) -> PracticeMode {
+  record.mode.flatMap { PracticeMode(rawValue: $0) }.flatMap { $0 == .normal ? nil : $0 } ?? .normal
+}
+
+public func recordsOfMode(_ records: [StoredRecord], _ mode: PracticeMode) -> [StoredRecord] {
+  records.filter { recordMode($0) == mode }
+}
+
+public func makeRecord(_ session: TypingSession, wordCount: Int, id: String, device: PracticeDevice?,
+                       mode: PracticeMode = .normal) throws -> StoredRecord {
   guard let finishedAt = session.finishedAt, session.startedAt != nil else { throw TypleError("practiceIncomplete") }
   let result = sessionResult(session)
   return StoredRecord(id: id, time: result.time, date: isoString(Date(timeIntervalSince1970: finishedAt / 1000)),
-                      mistakes: result.mistakes, accuracy: result.accuracy, device: device, wordCount: wordCount)
+                      mistakes: result.mistakes, accuracy: result.accuracy, device: device, wordCount: wordCount,
+                      mode: mode == .normal ? nil : mode.rawValue)
 }
 
 /// Adds a record once: sending the same record id again leaves the list as it is.
@@ -46,29 +61,25 @@ public func bestRecords(_ records: [StoredRecord], limit: Int = 5, order: RankOr
   Array(rankRecords(records, order: order).prefix(limit))
 }
 
-/// The records of normal runs. Records with a `mode`, such as recall, are not compared with them.
-public func normalRecords(_ records: [StoredRecord]) -> [StoredRecord] {
-  records.filter { $0.mode == nil }
-}
-
 /// Editing a list changes the task, so only runs at its current word count are compared. Records without a word
-/// count predate that field and cannot be matched. With no matching run, every record is compared instead.
-public func comparableRecords(_ list: WordList, _ records: [StoredRecord]? = nil) -> [StoredRecord] {
-  let records = normalRecords(records ?? list.records)
+/// count predate that field and cannot be matched. With no matching run, every record is compared instead. Only
+/// records of the given mode are compared: normal, recall and writing runs are never ranked together.
+public func comparableRecords(_ list: WordList, _ records: [StoredRecord]? = nil, mode: PracticeMode = .normal) -> [StoredRecord] {
+  let records = recordsOfMode(records ?? list.records, mode)
   let same = records.filter { $0.wordCount == list.words.count }
   return same.isEmpty ? records : same
 }
 
-/// The record every screen shows as a list's best.
-public func listBest(_ list: WordList) -> StoredRecord? {
-  bestRecords(comparableRecords(list), limit: 1).first
+/// The record every screen shows as a list's best in a mode.
+public func listBest(_ list: WordList, mode: PracticeMode = .normal) -> StoredRecord? {
+  bestRecords(comparableRecords(list, mode: mode), limit: 1).first
 }
 
-/// The position of the list's best in `list.records`.
-func listBestIndex(_ list: WordList) -> Int? {
-  let normal = list.records.indices.filter { list.records[$0].mode == nil }
-  let same = normal.filter { list.records[$0].wordCount == list.words.count }
-  let candidates = same.isEmpty ? normal : same
+/// The position of the list's best of a mode in `list.records`.
+func listBestIndex(_ list: WordList, mode: PracticeMode) -> Int? {
+  let ofMode = list.records.indices.filter { recordMode(list.records[$0]) == mode }
+  let same = ofMode.filter { list.records[$0].wordCount == list.words.count }
+  let candidates = same.isEmpty ? ofMode : same
   return rankIndices(candidates.map { list.records[$0] }).first.map { candidates[$0] }
 }
 
@@ -90,16 +101,18 @@ public struct RecordRow: Identifiable, Hashable, Sendable {
   public var record: StoredRecord
   public var index: Int
   public var id: String
-  /// Whether this record currently ranks first in its list.
+  /// Whether this record currently ranks first in its list among the records of its own mode.
   public var best: Bool
+  public var mode: PracticeMode
 }
 
 /// Every record with its list, newest first.
 public func recordRows(_ lists: [WordList]) -> [RecordRow] {
   lists.flatMap { list -> [RecordRow] in
-    let best = listBestIndex(list)
+    let best = Set(PracticeMode.allCases.compactMap { listBestIndex(list, mode: $0) })
     return list.records.enumerated().map { index, record in
-      RecordRow(list: list, record: record, index: index, id: "\(list.id)-\(record.id ?? "\(index)-\(record.date)")", best: index == best)
+      RecordRow(list: list, record: record, index: index, id: "\(list.id)-\(record.id ?? "\(index)-\(record.date)")",
+                best: best.contains(index), mode: recordMode(record))
     }
   }.stableSorted { timeOf($0.record.date) > timeOf($1.record.date) }
 }

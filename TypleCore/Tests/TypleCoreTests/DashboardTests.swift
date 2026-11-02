@@ -49,6 +49,18 @@ final class DashboardTests: XCTestCase {
     XCTAssertNil(summary.accuracy)
   }
 
+  func testWritingRecordsCountForTheWeekButNotTrends() {
+    let writing = StoredRecord(id: "w", time: 40, date: "2026-09-27T01:00:00Z", mistakes: 0, accuracy: 10, wordCount: 2, mode: "writing")
+    let lists = [list("a", [writing])]
+    XCTAssertTrue(listTrends(lists).isEmpty)
+    XCTAssertEqual(nextLists(lists, now: now, calendar: tokyo).map(\.reason), [.new])
+    let summary = summarize(lists, now: now, calendar: tokyo)
+    XCTAssertEqual(summary.weekCount, 1)
+    XCTAssertEqual(summary.weekSeconds, 40)
+    XCTAssertEqual(summary.streak, 1)
+    XCTAssertNil(summary.accuracy)
+  }
+
   func testStreakContinuesFromYesterday() {
     let summary = summarize([list("a", [record("2026-09-26T01:00:00Z"), record("2026-09-25T01:00:00Z")])], now: now, calendar: tokyo)
     XCTAssertFalse(summary.practicedToday)
