@@ -75,7 +75,7 @@ public func summarize(_ lists: [WordList], now: Date = Date(), calendar: Calenda
     streak += 1
     day = calendar.date(byAdding: .day, value: -1, to: day)!
   }
-  let newest = newestFirst(normalRecords(records)).compactMap(\.accuracy)
+  let newest = newestFirst(recordsOfMode(records, .normal)).compactMap(\.accuracy)
   let recentCount = min(10, newest.count)
   return DashboardSummary(
     weekStart: weekStart, weekCount: week.count, previousWeekCount: previousWeek.count,
@@ -103,7 +103,7 @@ public struct NextList: Identifiable, Sendable {
 public func nextLists(_ lists: [WordList], now: Date = Date(), limit: Int = 3, calendar: Calendar = .current) -> [NextList] {
   var groups: [[NextList]] = [[], [], []]
   for list in lists {
-    let records = newestFirst(normalRecords(list.records))
+    let records = newestFirst(recordsOfMode(list.records, .normal))
     guard let latest = records.first else {
       groups[0].append(NextList(list: list, lastPracticed: nil, reason: .new))
       continue
@@ -166,8 +166,8 @@ private func trend(_ points: [TrendPoint]) -> Trend {
 }
 
 public func listTrends(_ lists: [WordList]) -> [ListTrend] {
-  lists.filter { !normalRecords($0.records).isEmpty }.map { list -> ListTrend in
-    let records = Array(newestFirst(normalRecords(list.records)).reversed())
+  lists.filter { !recordsOfMode($0.records, .normal).isEmpty }.map { list -> ListTrend in
+    let records = Array(newestFirst(recordsOfMode(list.records, .normal)).reversed())
     return ListTrend(
       list: list, count: records.count,
       lastPracticed: Date(timeIntervalSince1970: timeOf(records[records.count - 1].date) / 1000),

@@ -377,7 +377,7 @@ struct PracticeView: View {
           Text(list.name).font(.system(size: 12)).foregroundStyle(Palette.mutedForeground).lineLimit(1)
         }
         let candidates = comparableRecords(list)
-        Text(candidates.count < normalRecords(list.records).count ? L("practice.aside.bestOrderAtCount", list.words.count) : L("practice.aside.bestOrder"))
+        Text(candidates.count < recordsOfMode(list.records, .normal).count ? L("practice.aside.bestOrderAtCount", list.words.count) : L("practice.aside.bestOrder"))
           .font(.system(size: 12)).foregroundStyle(Palette.mutedForeground)
         BestRecordsView(records: candidates, highlightId: model.saveState == .saved ? model.record?.id : nil)
         Button { app.showRankings(listId: list.id) } label: {

@@ -22,7 +22,7 @@ struct PracticeResultView: View {
 
   private func compare() -> (rank: Int, comparison: Comparison) {
     let wordCount = list.words.count
-    let normal = normalRecords(list.records)
+    let normal = recordsOfMode(list.records, .normal)
     let ranked = rankRecords(normal.filter { $0.wordCount == wordCount })
     let rank = record != nil && saveState == .saved ? (ranked.firstIndex { $0.id == record?.id } ?? -1) + 1 : 0
     guard let previous = ranked.first(where: { $0.id != record?.id }) else {

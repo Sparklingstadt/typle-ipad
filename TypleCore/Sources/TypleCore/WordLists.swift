@@ -144,9 +144,9 @@ public func deleteList(_ lists: [WordList], id: String) throws -> [WordList] {
   return lists.filter { $0.id != id }
 }
 
-/// The records a list's best is taken from: runs at its current word count.
+/// The records a list's best is taken from: normal runs at its current word count.
 public func currentRecordCount(_ list: WordList) -> Int {
-  list.records.filter { $0.wordCount == list.words.count }.count
+  recordsOfMode(list.records, .normal).filter { $0.wordCount == list.words.count }.count
 }
 
 /// `suffix(n)` is the localized mark for the nth copy, such as （コピー） and （コピー2）.
