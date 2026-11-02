@@ -8,8 +8,87 @@ public struct TypingSession: Equatable, Sendable {
   public var finishedAt: Double?
   public var attempts = 0
   public var mistakes = 0
+  /// When the practice was paused mid-run; the clock stands still until it is resumed. Typing does not use it yet.
+  public var pausedAt: Double?
+  /// The last check did not match (handwriting); cleared when the word is judged again or another starts.
+  public var missed = false
 
   public init() {}
+}
+
+/// Stops the clock of a running session. Before the first character or after the last there is nothing to stop.
+public func pauseSession(_ session: TypingSession, now: Double) -> TypingSession {
+  guard session.startedAt != nil, session.finishedAt == nil, session.pausedAt == nil else { return session }
+  var paused = session
+  paused.pausedAt = now
+  return paused
+}
+
+/// Moves startedAt on by the length of the pause, so elapsed time, speed and the recorded time all leave it out.
+public func resumeSession(_ session: TypingSession, now: Double) -> TypingSession {
+  guard let pausedAt = session.pausedAt, let startedAt = session.startedAt else { return session }
+  var resumed = session
+  resumed.startedAt = startedAt + max(0, now - pausedAt)
+  resumed.pausedAt = nil
+  return resumed
+}
+
+/// Milliseconds of practice so far: up to the finish, or to the pause while paused.
+public func elapsedTime(_ session: TypingSession, now: Double) -> Double {
+  guard let startedAt = session.startedAt else { return 0 }
+  return max(0, (session.finishedAt ?? session.pausedAt ?? now) - startedAt)
+}
+
+public struct TypingOptions: Equatable, Sendable {
+  /// Simple input: plain Latin letters for accents and Cyrillic, ss for ß, and ? for ¿.
+  public var ignoreAccents: Bool
+  /// Upper and lower case count as the same letter (a for A, É for é).
+  public var ignoreCase: Bool
+
+  public init(ignoreAccents: Bool = false, ignoreCase: Bool = false) {
+    self.ignoreAccents = ignoreAccents
+    self.ignoreCase = ignoreCase
+  }
+}
+
+/// The blocks of Unicode's Latin script, for `\p{Script=Latin}`, which Swift has no property for.
+private let latinRanges: [ClosedRange<UInt32>] = [
+  0x41...0x5A, 0x61...0x7A, 0xAA...0xAA, 0xBA...0xBA, 0xC0...0xD6, 0xD8...0xF6, 0xF8...0x24F, 0x250...0x2AF,
+  0x1D00...0x1D7F, 0x1E00...0x1EFF, 0x2C60...0x2C7F, 0xA720...0xA7FF, 0xAB30...0xAB6F, 0xFF21...0xFF3A, 0xFF41...0xFF5A,
+]
+
+/// A Latin letter with its accents and other marks taken off, or nil for anything else. Only Latin letters are folded:
+/// kana such as が also split into a base and a mark, and か must not count for it.
+public func latinBase(_ char: String) -> String? {
+  let base = char.decomposedStringWithCanonicalMapping.unicodeScalars.filter { scalar in
+    ![.nonspacingMark, .spacingMark, .enclosingMark].contains(scalar.properties.generalCategory)
+  }
+  guard base.count == 1, let scalar = base.first, latinRanges.contains(where: { $0.contains(scalar.value) }) else { return nil }
+  return String(scalar)
+}
+
+public let cyrillicLatin: [String: String] = [
+  "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo", "ж": "zh", "з": "z",
+  "и": "i", "й": "y", "к": "k", "л": "l", "м": "m", "н": "n", "о": "o", "п": "p", "р": "r",
+  "с": "s", "т": "t", "у": "u", "ф": "f", "х": "kh", "ц": "ts", "ч": "ch", "ш": "sh", "щ": "shch",
+  "ъ": "\"", "ы": "y", "ь": "'", "э": "e", "ю": "yu", "я": "ya",
+]
+
+public func cyrillicAlternatives(_ target: String) -> [String] {
+  let lower = target.lowercased()
+  guard let latin = cyrillicLatin[lower] else { return [] }
+  // Capital letters accept title case (Sh) and all caps (SH).
+  return target == lower ? [latin] : [latin.prefix(1).uppercased() + latin.dropFirst(), latin.uppercased()]
+}
+
+public func matchesCharacter(_ typed: String, _ target: String, options: TypingOptions = TypingOptions()) -> Bool {
+  let typed = options.ignoreCase ? typed.lowercased() : typed
+  let target = options.ignoreCase ? target.lowercased() : target
+  if typed.unicodeScalars.elementsEqual(target.unicodeScalars) { return true }
+  guard options.ignoreAccents else { return false }
+  if target == "¿" && typed == "?" { return true }
+  if cyrillicAlternatives(target).contains(where: { $0.unicodeScalars.elementsEqual(typed.unicodeScalars) }) { return true }
+  return latinBase(target).map { $0.unicodeScalars.elementsEqual(typed.unicodeScalars) } ?? false
 }
 
 /// Applies the input field's new value. Only characters added since the last value count as attempts, and an added

@@ -53,6 +53,11 @@ test('the apps bundle the official packs of the web app', { skip: !typleR && 'TY
     'run node scripts/catalog.cjs <typle-r> again')
 })
 
+test('the apps judge handwriting with the same cases as the web app', { skip: !typleR && 'TYPLE_R is not set' }, () => {
+  assert.equal(fs.readFileSync(path.join(root, 'TypleCore/Tests/TypleCoreTests/Fixtures/writing/match.json'), 'utf8'),
+    fs.readFileSync(path.join(typleR, 'tests/fixtures/writing/match.json'), 'utf8'), 'copy tests/fixtures/writing/match.json of typle-r again')
+})
+
 test('the apps have Japanese and English text for every key they use, with the same placeholders', () => {
   const files = ['Shared', 'iPad', 'Mac', 'TypleCore/Sources'].flatMap(dir => swiftFiles(path.join(root, dir)))
   const sources = files.map(file => fs.readFileSync(file, 'utf8')).join('\n')
