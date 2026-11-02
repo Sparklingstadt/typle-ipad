@@ -155,9 +155,10 @@ struct RecordRowView: View {
       VStack(alignment: .leading, spacing: 2) {
         HStack(spacing: 8) {
           Text(row.list.name).font(.system(size: 16)).lineLimit(1)
-          if record.mode == "recall" {
-            Text(L("records.recallBadge"))
+          if row.mode != .normal {
+            Text(L(row.mode == .writing ? "records.writingBadge" : "records.recallBadge"))
               .font(.system(size: 12, weight: .bold))
+              .fixedSize()
               .foregroundStyle(Palette.mutedForeground)
               .padding(.horizontal, 8)
               .frame(height: 22)

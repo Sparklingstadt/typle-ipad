@@ -74,6 +74,18 @@ struct PracticeView: View {
     .onChange(of: model.list(in: app.lists)?.writing) { syncMode() }
     #if DEBUG
     .task {
+      // Handwriting screenshots: `-TypleWriting "爱护|xx"` checks each text as if written into the field, Return after each.
+      guard let text = UserDefaults.standard.string(forKey: "TypleWriting"), let list = model.list(in: app.lists) else { return }
+      try? await Task.sleep(for: .milliseconds(300))
+      choice.writing = true
+      choice.method = .system
+      syncMode()
+      for written in text.split(separator: "|").map(String.init) {
+        model.judge([written], list: list, explicit: true, device: app.chosenPracticeDevice, app: app)
+        try? await Task.sleep(for: .milliseconds(200))
+      }
+    }
+    .task {
       // Screenshots of a run in progress or finished: `-TypleTyping hogefx` types as if from the keyboard.
       guard let text = UserDefaults.standard.string(forKey: "TypleTyping"), let list = model.list(in: app.lists) else { return }
       try? await Task.sleep(for: .milliseconds(300))

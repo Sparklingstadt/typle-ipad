@@ -15,6 +15,11 @@ struct RankingsView: View {
     let devices = deviceOptions(app.lists.flatMap(\.records))
     PageScroll(maxWidth: 1088) {
       PageHeader(title: L("rankings.title"), description: L("rankings.intro"))
+      // Normal, recall and Handwriting runs are ranked apart, as /rankings?mode= does.
+      SegmentedPills(options: PracticeMode.allCases.map { ($0, L("rankings.mode.\($0.rawValue)")) },
+                     selection: Binding(get: { app.rankingsMode }, set: { app.rankingsMode = $0 }))
+        .fixedSize()
+        .accessibilityLabel(L("rankings.mode.label"))
       HStack(spacing: 10) {
         Menu {
           Picker(L("rankings.filter.device"), selection: $device) {
@@ -38,7 +43,7 @@ struct RankingsView: View {
         .font(.system(size: 12)).foregroundStyle(Palette.mutedForeground)
       }
       if let id = app.rankingsList, let list = app.lists.first(where: { $0.id == id }) {
-        detail(listRanking(list, device: device, order: order, includeOthers: showAll))
+        detail(listRanking(list, device: device, order: order, includeOthers: showAll, mode: app.rankingsMode))
       } else {
         lists
       }
@@ -48,7 +53,7 @@ struct RankingsView: View {
   // MARK: The lists
 
   private var lists: some View {
-    let rankings = sortRankings(app.lists.map { listRanking($0, device: device, order: order) }, sort: sort, locale: Localization.locale)
+    let rankings = sortRankings(app.lists.map { listRanking($0, device: device, order: order, mode: app.rankingsMode) }, sort: sort, locale: Localization.locale)
       .filter { query.isEmpty || $0.list.name.lowercased().contains(query.trimmingCharacters(in: .whitespaces).lowercased()) }
     let practised = rankings.filter { !$0.records.isEmpty }
     let unpractised = rankings.filter { $0.records.isEmpty }
