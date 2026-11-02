@@ -161,6 +161,41 @@ final class WordListTests: XCTestCase {
     XCTAssertEqual(result.lists.count, 3)
   }
 
+  // Records of the recall mode keep their `mode` through a read and a save, in both stored forms.
+  func testRecallModeSurvivesLocalAndAccountRoundTrip() throws {
+    let records = #"[{"id":"r1","time":5,"date":"2026-01-01T00:00:00.000Z","wordCount":1,"mode":"recall"},{"id":"r2","time":9,"date":"2026-01-02T00:00:00.000Z","wordCount":1}]"#
+    let lists = #"[{"id":"x","name":"X","createdAt":"2026-01-01","words":[{"display":"a","input":"a","annotation":""}],"records":\#(records)}]"#
+    let account = try decodeAccountWorkspace(Data(#"{"lists":\#(lists),"devices":[],"revision":1,"accountId":"github:1"}"#.utf8))
+    XCTAssertEqual(account.document.lists[0].records[0].mode, "recall")
+    let accountBody = String(decoding: try encodeAccountWorkspace(account), as: UTF8.self)
+    XCTAssertEqual(accountBody.components(separatedBy: #""mode":"recall""#).count, 2, accountBody)
+    XCTAssertEqual(accountBody.components(separatedBy: #""mode""#).count, 2, accountBody)
+
+    let local = try decodeWorkspaceFile(Data(#"{"version":1,"accountId":"guest","revision":0,"lists":\#(lists),"devices":[]}"#.utf8), accountId: "guest")
+    XCTAssertEqual(local.lists[0].records[0].mode, "recall")
+    let localBody = String(decoding: try encodeWorkspaceFile(local), as: UTF8.self)
+    XCTAssertEqual(localBody.components(separatedBy: #""mode":"recall""#).count, 2, localBody)
+    XCTAssertEqual(localBody.components(separatedBy: #""mode""#).count, 2, localBody)
+  }
+
+  func testRecallRecordsAreLeftOutOfBestsAndRankings() {
+    let normal = StoredRecord(id: "n", time: 10, date: "2026-01-01T00:00:00.000Z", wordCount: 2)
+    let recall = StoredRecord(id: "r", time: 5, date: "2026-01-02T00:00:00.000Z", wordCount: 2, mode: "recall")
+    let list = WordList(id: "a", name: "A", words: words, records: [normal, recall], createdAt: "x")
+    XCTAssertEqual(listBest(list)?.time, 10)
+    XCTAssertEqual(listRanking(list).ranked.map(\.id), ["n"])
+    XCTAssertEqual(recordRows([list]).filter(\.best).map(\.record.id), ["n"])
+    XCTAssertEqual(listRanking(list).records.map(\.id), ["n"])
+    XCTAssertEqual(normalRecords([normal, recall]).map(\.id), ["n"])
+    // A list with recall records only has no best and nothing ranked.
+    let onlyRecall = WordList(id: "b", name: "B", words: words, records: [recall], createdAt: "x")
+    XCTAssertNil(listBest(onlyRecall))
+    XCTAssertNil(listRanking(onlyRecall).best)
+    XCTAssertTrue(listRanking(onlyRecall).ranked.isEmpty)
+    XCTAssertTrue(listRanking(onlyRecall).records.isEmpty)
+    XCTAssertNil(listRanking(onlyRecall).lastPracticed)
+  }
+
   // The category and tags (v0.78.0) are kept through a read, a save, an edit and a copy, and left out when there are none.
   func testCategoryAndTags() throws {
     let answer = #"{"lists":[{"id":"x","name":"X","category":"プログラミング","tags":["Go","CLI"],"createdAt":"2026-01-01","words":[{"display":"a","input":"a","annotation":""}],"records":[]},{"id":"y","name":"Y","createdAt":"2026-01-01","words":[{"display":"a","input":"a","annotation":""}],"records":[]}],"devices":[],"revision":1,"accountId":"github:1"}"#

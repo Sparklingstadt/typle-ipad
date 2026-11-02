@@ -26,7 +26,8 @@ public struct ListRanking: Identifiable, Sendable {
 
 /// Uses the same comparison as `listBest`, so a list's rank 1 here is the best shown on every other screen.
 public func listRanking(_ list: WordList, device: String? = nil, order: RankOrder = .accuracy, includeOthers: Bool = false, now: Date = Date()) -> ListRanking {
-  let records = list.records.filter { matchesDevice($0, device) }
+  // Records of another mode, such as recall, are left out: the rankings show normal runs only.
+  let records = normalRecords(list.records).filter { matchesDevice($0, device) }
   let others = records.filter { $0.wordCount != list.words.count }
   let fallback = !others.isEmpty && others.count == records.count
   let ranked = rankRecords(includeOthers ? records : comparableRecords(list, records), order: order)

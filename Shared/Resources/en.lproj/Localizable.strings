@@ -288,6 +288,7 @@
 "records.day.heading" = "%1$@ · %2$@";
 "records.day.summary" = "%1$ld runs · %2$@";
 "records.note" = "Word counts and device names are as they were at the time of practice.";
+"records.recallBadge" = "Recall";
 "records.row.best" = "Best";
 "records.row.words" = "%ld words";
 "records.row.perWordUnit" = "s/word";

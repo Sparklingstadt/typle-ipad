@@ -22,10 +22,11 @@ struct PracticeResultView: View {
 
   private func compare() -> (rank: Int, comparison: Comparison) {
     let wordCount = list.words.count
-    let ranked = rankRecords(list.records.filter { $0.wordCount == wordCount })
+    let normal = normalRecords(list.records)
+    let ranked = rankRecords(normal.filter { $0.wordCount == wordCount })
     let rank = record != nil && saveState == .saved ? (ranked.firstIndex { $0.id == record?.id } ?? -1) + 1 : 0
     guard let previous = ranked.first(where: { $0.id != record?.id }) else {
-      return (rank, list.records.contains { $0.id != record?.id } ? .firstAtCount : .firstForList)
+      return (rank, normal.contains { $0.id != record?.id } ? .firstAtCount : .firstForList)
     }
     if rank == 1, let record { return (rank, .best(difference: record.time - previous.time)) }
     return (rank, .behind(previous: previous))

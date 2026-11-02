@@ -53,9 +53,12 @@ public struct StoredRecord: Codable, Hashable, Sendable {
   public var accuracy: Double?
   public var device: PracticeDevice?
   public var wordCount: Int?
+  /// How the run was practised, such as "recall" (typle-r). Kept as saved so a save here does not erase it; nil for a
+  /// normal run, and then left out of the stored record.
+  public var mode: String?
 
   public init(id: String? = nil, time: Double, date: String, mistakes: Int? = nil, accuracy: Double? = nil,
-              device: PracticeDevice? = nil, wordCount: Int? = nil) {
+              device: PracticeDevice? = nil, wordCount: Int? = nil, mode: String? = nil) {
     self.id = id
     self.time = time
     self.date = date
@@ -63,6 +66,7 @@ public struct StoredRecord: Codable, Hashable, Sendable {
     self.accuracy = accuracy
     self.device = device
     self.wordCount = wordCount
+    self.mode = mode
   }
 }
 

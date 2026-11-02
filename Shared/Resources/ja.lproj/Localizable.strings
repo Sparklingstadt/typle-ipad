@@ -288,6 +288,7 @@
 "records.day.heading" = "%1$@・%2$@";
 "records.day.summary" = "%1$ld回・%2$@";
 "records.note" = "単語数・端末名は練習した時点のものです。";
+"records.recallBadge" = "思い出す";
 "records.row.best" = "ベスト";
 "records.row.words" = "%ld語";
 "records.row.perWordUnit" = "秒/語";
