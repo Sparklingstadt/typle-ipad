@@ -8,7 +8,7 @@ struct AccountUser: Codable, Equatable {
   var name: String
 }
 
-/// Requests to the web app's Go backend (`/api/auth/*`, `/api/workspace`), with the app's token when it has one. Its
+/// Requests to the web app's Go backend (`/api/auth/*`, `/api/graphql`), with the app's token when it has one. Its
 /// errors are the app's messages.
 struct AccountClient {
   let baseURL: URL
@@ -45,6 +45,16 @@ struct AccountClient {
 
   func decode<T: Decodable>(_ data: Data) throws -> T {
     do { return try JSONDecoder().decode(T.self, from: data) } catch { throw TypleError("invalidServerData") }
+  }
+
+  /// Sends a workspace request (TypleCore) and reads the workspace in `field` of its answer.
+  func workspace(_ request: Data, field: String, token: String) async throws -> AccountWorkspace {
+    let data = try await send("POST", "api/graphql", body: request, token: token)
+    do {
+      return try decodeWorkspaceAnswer(data, field: field)
+    } catch let failure as GraphQLFailure {
+      throw Self.error(for: failure.key, status: failure.status)
+    }
   }
 
   /// The backend's error keys, as messages of the app. Keys the web app shows keep their message.
