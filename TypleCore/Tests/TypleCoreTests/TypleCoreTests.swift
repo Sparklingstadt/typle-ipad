@@ -248,7 +248,7 @@ final class WordListTests: XCTestCase {
   }
 
   func testAccountWorkspace() throws {
-    // As /api/workspace answers: an unknown field is ignored, and a record without the optional fields is read.
+    // As the backend answers: an unknown field is ignored, and a record without the optional fields is read.
     let answer = #"{"lists":[{"id":"x","name":"X","createdAt":"2026-01-01","extra":1,"words":[{"display":"a","input":"a","annotation":""}],"records":[{"time":5,"date":"2024/09/22 10:05"}]}],"devices":[{"id":"d","name":" iPad ","layout":""}],"revision":4,"accountId":"github:1"}"#
     let decoded = try decodeAccountWorkspace(Data(answer.utf8))
     XCTAssertEqual(decoded.accountId, "github:1")
@@ -344,7 +344,7 @@ final class WordFileTests: XCTestCase {
 final class PackTests: XCTestCase {
   private let word = #"{"display":"a","input":"a","annotation":""}"#
 
-  /// An answer of /api/workspace since typle-r v2.1.0: the followed pack Vimコマンド（2） (pack-vim-beginner) with only
+  /// A workspace as the backend answers since typle-r v2.1.0: the followed pack Vimコマンド（2） (pack-vim-beginner) with only
   /// one of its lists, saved without words, and a pack of the account's own with two lists.
   private func answer(extraPacks: String = "") -> Data {
     Data(#"""
