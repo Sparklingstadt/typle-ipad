@@ -1,9 +1,9 @@
 import Foundation
 import TypleCore
 
-/// The signed-in account's workspace through the web app's `/api/graphql`, the same data the web app shows after a
+/// The signed-in account's workspace through the web app's `/api/workspace`, the same data the web app shows after a
 /// GitHub login. Every change is a save of the whole document for the revision it was made from; when the data was
-/// changed elsewhere since (`conflict`), the latest is read and the change made again on it.
+/// changed elsewhere since (409 conflict), the latest is read and the change made again on it.
 @MainActor
 final class AccountWorkspaceStore: WorkspaceStore {
   let accountId: String
@@ -40,7 +40,7 @@ final class AccountWorkspaceStore: WorkspaceStore {
   }
 
   private func read() async throws -> AccountWorkspace {
-    let loaded = try await client.workspace(try workspaceRequest(), field: "workspace", token: token)
+    let loaded = try decodeAccountWorkspace(try await client.send("GET", "api/workspace", token: token))
     guard loaded.accountId == accountId else { throw TypleError("accountLoginRequired") }
     return loaded
   }
@@ -51,7 +51,7 @@ final class AccountWorkspaceStore: WorkspaceStore {
       var next = current
       next.document = try transform(current.document)
       do {
-        let written = try await client.workspace(try saveWorkspaceRequest(next), field: "saveWorkspace", token: token)
+        let written = try decodeAccountWorkspace(try await client.send("PUT", "api/workspace", body: try encodeAccountWorkspace(next), token: token))
         // A later save may have finished first; the newer revision is kept.
         if saved.map({ $0.revision < written.revision }) ?? true { saved = written }
         return saved?.document ?? written.document
