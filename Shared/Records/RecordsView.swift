@@ -7,8 +7,7 @@ struct RecordsView: View {
   @State private var listFilter: String?
   @State private var deviceFilter: String?
   @State private var deleting: RecordRow?
-  @State private var message: String?
-  @State private var failed = false
+  @State private var status: StatusMessage?
 
   var body: some View {
     let all = recordRows(app.lists)
@@ -16,10 +15,7 @@ struct RecordsView: View {
     let options = deviceOptions(all.filter { listFilter == nil || $0.list.id == listFilter }.map(\.record))
     PageScroll {
       PageHeader(title: L("records.title"), description: L("records.intro"))
-      if let message {
-        Label(message, systemImage: failed ? "exclamationmark.triangle" : "checkmark.circle")
-          .font(.system(size: 14)).foregroundStyle(failed ? Palette.destructive : Palette.success)
-      }
+      if let status { StatusLabel(status: status) }
       if all.isEmpty {
         empty(title: L("records.empty.title"), description: L("records.empty.description"))
       } else {
@@ -133,11 +129,9 @@ struct RecordsView: View {
     Task {
       do {
         try await app.deleteRecord(row.record, listId: row.list.id)
-        failed = false
-        message = L("records.delete.done", row.list.name, Format.date(row.record.date))
+        status = .done(L("records.delete.done", row.list.name, Format.date(row.record.date)))
       } catch {
-        failed = true
-        message = errorText(error)
+        status = .failure(error)
       }
     }
   }
