@@ -94,11 +94,8 @@ struct RankingDetailView: View {
             let recent = parseDate(record.date).map { Date().timeIntervalSince($0) < improvedDays * 86400 } ?? false
             HStack(spacing: 12) {
               RankBadge(rank: index + 1).frame(width: 36, alignment: .leading)
-              HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text(Format.seconds(record.time)).font(.system(size: 14, weight: .semibold)).monospacedDigit()
-                Text(L("format.secondsUnit")).font(.system(size: 10)).foregroundStyle(Palette.mutedForeground)
-              }
-              .frame(width: 130, alignment: .leading)
+              SecondsText(seconds: record.time)
+                .frame(width: 130, alignment: .leading)
               Text(formatAccuracy(record.accuracy)).font(.system(size: 14)).monospacedDigit().frame(width: 70, alignment: .leading)
               Text(record.mistakes.map(String.init) ?? "—").font(.system(size: 14)).foregroundStyle(Palette.mutedForeground).frame(width: 46, alignment: .leading)
               Text(Format.device(record.device)).font(.system(size: 14)).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)

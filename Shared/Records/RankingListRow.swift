@@ -14,10 +14,7 @@ struct RankingListRow: View {
           if let best = ranking.best {
             HStack(spacing: 8) {
               Image(systemName: "trophy").font(.system(size: 11)).foregroundStyle(Palette.amber)
-              HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text(Format.seconds(best.time)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
-                Text(L("format.secondsUnit")).font(.system(size: 10)).foregroundStyle(Palette.mutedForeground)
-              }
+              SecondsText(seconds: best.time, size: 13)
               Text(formatAccuracy(best.accuracy)).font(.system(size: 13)).foregroundStyle(Palette.mutedForeground)
               if ranking.improved {
                 HStack(spacing: 2) {

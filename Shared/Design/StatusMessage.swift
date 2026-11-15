@@ -8,6 +8,16 @@ struct StatusMessage: Equatable {
   static func done(_ text: String) -> StatusMessage { StatusMessage(text: text, failed: false) }
   static func failure(_ text: String) -> StatusMessage { StatusMessage(text: text, failed: true) }
   static func failure(_ error: Error) -> StatusMessage { .failure(errorText(error)) }
+
+  /// Runs an action that returns what it did, and says that as done, or why it failed.
+  @MainActor
+  static func of(_ action: () async throws -> String) async -> StatusMessage {
+    do {
+      return .done(try await action())
+    } catch {
+      return .failure(error)
+    }
+  }
 }
 
 /// A status message under a page's heading: green with a check, or red with a warning.
