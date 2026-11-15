@@ -145,11 +145,9 @@ struct DevicesView: View {
 
   private func delete(_ device: PracticeDevice) {
     Task {
-      do {
+      status = await .of {
         try await app.deleteDevice(id: device.id)
-        status = .done(L("devices.deleted", device.name))
-      } catch {
-        status = .failure(error)
+        return L("devices.deleted", device.name)
       }
     }
   }

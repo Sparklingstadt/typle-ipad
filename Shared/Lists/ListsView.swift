@@ -155,22 +155,18 @@ struct ListsView: View {
 
   private func duplicate(_ list: WordList) {
     Task {
-      do {
+      status = await .of {
         let copy = try await app.duplicateList(id: list.id)
-        status = .done(L("wordLists.page.created", copy.name))
-      } catch {
-        status = .failure(error)
+        return L("wordLists.page.created", copy.name)
       }
     }
   }
 
   private func delete(_ list: WordList) {
     Task {
-      do {
+      status = await .of {
         try await app.deleteList(id: list.id)
-        status = .done(L("wordLists.page.deleted", list.name))
-      } catch {
-        status = .failure(error)
+        return L("wordLists.page.deleted", list.name)
       }
     }
   }

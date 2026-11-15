@@ -127,11 +127,9 @@ struct RecordsView: View {
 
   private func delete(_ row: RecordRow) {
     Task {
-      do {
+      status = await .of {
         try await app.deleteRecord(row.record, listId: row.list.id)
-        status = .done(L("records.delete.done", row.list.name, Format.date(row.record.date)))
-      } catch {
-        status = .failure(error)
+        return L("records.delete.done", row.list.name, Format.date(row.record.date))
       }
     }
   }

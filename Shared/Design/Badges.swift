@@ -95,3 +95,16 @@ struct ValueWithUnit: View {
     }
   }
 }
+
+/// A run's time in a table row, with a tight, small 「秒」: the rankings' best and top records.
+struct SecondsText: View {
+  var seconds: Double
+  var size: CGFloat = 14
+
+  var body: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 1) {
+      Text(Format.seconds(seconds)).font(.system(size: size, weight: .semibold)).monospacedDigit()
+      Text(L("format.secondsUnit")).font(.system(size: 10)).foregroundStyle(Palette.mutedForeground)
+    }
+  }
+}
