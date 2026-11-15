@@ -91,8 +91,7 @@ struct ListEditorView: View {
       if let errorMessage {
         Label(errorMessage, systemImage: "exclamationmark.triangle").font(.system(size: 14)).foregroundStyle(Palette.destructive)
           .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-          .background(Palette.destructive.opacity(0.05), in: RoundedRectangle(cornerRadius: Radius.lg))
-          .outlined(radius: Radius.lg, color: Palette.destructive.opacity(0.4))
+          .callout(.destructive)
       }
       nameCard
       WritingMarkCard(writing: $writing)
@@ -101,7 +100,7 @@ struct ListEditorView: View {
         Text(L("wordLists.editor.recount", original.words.count, words.count, currentRecordCount(original)))
           .font(.system(size: 13)).foregroundStyle(Palette.amber)
           .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-          .background(Palette.amberSoft, in: RoundedRectangle(cornerRadius: Radius.lg))
+          .callout(.warning)
       }
       footer
     }
