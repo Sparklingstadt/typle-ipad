@@ -247,11 +247,13 @@ struct ListEditorView: View {
     // Empty rows at the end are ignored; a row with only a note or input must have its word filled in.
     var kept = rows
     while let last = kept.last, !last.filled, kept.count > 0 { kept.removeLast() }
-    for row in kept {
-      if row.word.display.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { rowErrors[row.id] = L("wordLists.editor.displayRequired") }
-      else if !row.word.input.isEmpty && row.word.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { rowErrors[row.id] = L("wordLists.editor.inputBlank") }
+    for problem in draftProblems(name: name, words: kept.map { ($0.id, $0.word) }) {
+      switch problem {
+      case .name: nameError = errorText(TypleError("listNameRequired"))
+      case .display(let id): rowErrors[id] = L("wordLists.editor.displayRequired")
+      case .input(let id): rowErrors[id] = L("wordLists.editor.inputBlank")
+      }
     }
-    if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { nameError = errorText(TypleError("listNameRequired")) }
     guard rowErrors.isEmpty, nameError == nil else {
       errorMessage = L("wordLists.editor.errorCount", rowErrors.count + (nameError == nil ? 0 : 1))
       return
