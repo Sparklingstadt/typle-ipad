@@ -80,8 +80,7 @@ struct PracticeResultView: View {
             Button(L("practice.result.retry"), action: onRetry).buttonStyle(.typle(.outline))
           }
           .padding(14)
-          .background(Palette.destructive.opacity(0.05), in: RoundedRectangle(cornerRadius: Radius.lg))
-          .outlined(radius: Radius.lg, color: Palette.destructive.opacity(0.4))
+          .callout(.destructive)
         case .saving, .idle:
           Label(L("practice.result.saving"), systemImage: "arrow.triangle.2.circlepath").foregroundStyle(Palette.mutedForeground)
         case .saved:

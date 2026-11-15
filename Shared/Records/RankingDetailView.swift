@@ -39,7 +39,7 @@ struct RankingDetailView: View {
           Text(L("rankings.detail.notPractised.description")).font(.system(size: 14)).foregroundStyle(Palette.mutedForeground)
         }
         .padding(20).frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.muted.opacity(0.5), in: RoundedRectangle(cornerRadius: Radius.lg))
+        .callout(.muted)
       } else {
         HStack(spacing: 12) {
           if let best = ranking.best {
@@ -61,11 +61,11 @@ struct RankingDetailView: View {
           if stats.points.count > 1 {
             TrendChart(points: stats.points.map { TrendPoint(date: $0.date, value: $0.value) }, scale: speedScale(stats.points.map { $0.value }))
               .padding(14)
-              .background(Palette.muted.opacity(0.5), in: RoundedRectangle(cornerRadius: Radius.lg))
+              .callout(.muted)
           } else {
             Text(L("rankings.detail.trend.needTwo")).font(.system(size: 14)).foregroundStyle(Palette.mutedForeground)
               .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-              .background(Palette.muted.opacity(0.5), in: RoundedRectangle(cornerRadius: Radius.lg))
+              .callout(.muted)
           }
         }
         if ranking.fallback {
