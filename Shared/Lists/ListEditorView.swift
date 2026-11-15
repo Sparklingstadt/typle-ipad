@@ -8,30 +8,8 @@ struct ListEditorView: View {
   @Environment(AppModel.self) private var app
   let listId: String?
 
-  private struct Row: Identifiable, Equatable {
-    let id = UUID()
-    var word: Word
-    var filled: Bool { !word.display.isEmpty || !word.input.isEmpty || !word.annotation.isEmpty }
-
-    /// A new empty row, with its own id each time.
-    static var empty: Row { Row(word: Word(display: "", input: "")) }
-
-    /// A saved word as the editor shows it: an input equal to the word shown is empty, as the web editor does.
-    init(editing word: Word) {
-      self.init(word: Word(display: word.display, input: word.input == word.display ? "" : word.input, annotation: word.annotation))
-    }
-
-    init(word: Word) { self.word = word }
-
-    /// The word to save: an empty input means the same as the word shown.
-    var saved: Word {
-      Word(display: word.display, input: word.input.isEmpty ? word.display : word.input, annotation: word.annotation, inputType: word.inputType)
-    }
-  }
-
-  private enum Field: Hashable {
-    case name, display(UUID), input(UUID), annotation(UUID)
-  }
+  private typealias Row = ListEditorRow
+  private typealias Field = ListEditorField
 
   @State private var name = ""
   @State private var rows: [Row] = []
@@ -154,7 +132,12 @@ struct ListEditorView: View {
       ForEach($rows) { $row in
         let index = rows.firstIndex { $0.id == row.id } ?? 0
         if index > 0 { Hairline() }
-        wordRow($row, index: index)
+        WordRowView(row: $row, index: index, count: rows.count, error: rowErrors[row.id], focus: $focus,
+                    onSubmit: next(after:), onMove: move, onRemove: remove) { id in
+          guard let from = rows.firstIndex(where: { $0.id == id }) else { return false }
+          move(from, to: index)
+          return true
+        }
       }
       Hairline()
       VStack(alignment: .leading, spacing: 12) {
@@ -176,73 +159,6 @@ struct ListEditorView: View {
       .padding(.vertical, 16)
     }
     .card()
-  }
-
-  private func wordRow(_ binding: Binding<Row>, index: Int) -> some View {
-    let row = binding.wrappedValue
-    let error = rowErrors[row.id]
-    return VStack(alignment: .leading, spacing: 6) {
-      HStack(spacing: 12) {
-        HStack(spacing: 14) {
-          Image(systemName: "line.3.horizontal").font(.system(size: 13)).foregroundStyle(Palette.mutedForeground)
-            .frame(width: 20, height: 36)
-            .contentShape(Rectangle())
-            .draggable(row.id.uuidString)
-            .accessibilityLabel(L("wordLists.wordRow.drag", index + 1))
-          Text("\(index + 1)").font(.system(size: 14)).monospacedDigit().foregroundStyle(Palette.mutedForeground)
-        }
-        .frame(width: 60, alignment: .leading)
-        cell(L("wordLists.editor.displayPlaceholder"), binding.word.display, field: .display(row.id), invalid: error != nil && row.word.display.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-             label: L("wordLists.editor.displayLabel", index + 1))
-        cell(row.word.display, binding.word.input, field: .input(row.id), invalid: error != nil && !row.word.input.isEmpty,
-             label: L("wordLists.editor.inputLabel", index + 1))
-        cell(L("wordLists.editor.annotationPlaceholder"), binding.word.annotation, field: .annotation(row.id), invalid: false,
-             label: L("wordLists.editor.annotationLabel", index + 1))
-        Menu {
-          Button { move(index, to: index - 1) } label: { Label(L("wordLists.editor.moveUp"), systemImage: "arrow.up") }.disabled(index == 0)
-          Button { move(index, to: index + 1) } label: { Label(L("wordLists.editor.moveDown"), systemImage: "arrow.down") }.disabled(index == rows.count - 1)
-          Button { move(index, to: 0) } label: { Label(L("wordLists.editor.moveFirst"), systemImage: "arrow.up.to.line") }.disabled(index == 0)
-          Button { move(index, to: rows.count - 1) } label: { Label(L("wordLists.editor.moveLast"), systemImage: "arrow.down.to.line") }.disabled(index == rows.count - 1)
-          Divider()
-          Button(role: .destructive) { remove(index) } label: { Label(L("wordLists.editor.deleteWord"), systemImage: "trash") }
-        } label: {
-          Image(systemName: "ellipsis").font(.system(size: 14)).frame(width: 32, height: 36).contentShape(Rectangle())
-        }
-        .plainMenu()
-        .foregroundStyle(Palette.foreground)
-        .accessibilityLabel(L("wordLists.editor.wordActions", index + 1))
-        Button { remove(index) } label: { Image(systemName: "trash").font(.system(size: 14)) }
-          .buttonStyle(.typle(.ghost, size: .icon))
-          .foregroundStyle(Palette.mutedForeground)
-          .disabled(rows.count == 1 && !row.filled)
-          .accessibilityLabel(L("wordLists.editor.deleteWordN", index + 1))
-      }
-      if let error {
-        Text(error).font(.system(size: 12)).foregroundStyle(Palette.destructive).padding(.leading, 72)
-      }
-    }
-    .padding(.horizontal, 24)
-    .padding(.vertical, 8)
-    .dropDestination(for: String.self) { items, _ in
-      guard let id = items.first.flatMap(UUID.init(uuidString:)), let from = rows.firstIndex(where: { $0.id == id }) else { return false }
-      move(from, to: index)
-      return true
-    }
-  }
-
-  private func cell(_ placeholder: String, _ text: Binding<String>, field: Field, invalid: Bool, label: String) -> some View {
-    TextField(placeholder, text: text)
-      .font(.system(size: 14))
-      .plainInput()
-      .focused($focus, equals: field)
-      .submitLabel(.next)
-      .onSubmit { next(after: field) }
-      .padding(.horizontal, 12)
-      .frame(height: 40)
-      .background(Palette.card, in: RoundedRectangle(cornerRadius: Radius.md))
-      .outlined(radius: Radius.md, color: invalid ? Palette.destructive : Palette.input)
-      .frame(maxWidth: .infinity)
-      .accessibilityLabel(label)
   }
 
   private var footer: some View {
