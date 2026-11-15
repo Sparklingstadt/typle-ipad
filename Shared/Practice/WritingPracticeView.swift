@@ -34,7 +34,7 @@ struct WritingPracticeView: View {
       if !word.annotation.isEmpty {
         Text(word.annotation).font(.system(size: 16)).multilineTextAlignment(.center)
       }
-      Text(word.display).font(.system(size: wordSize(word.display), weight: .medium)).multilineTextAlignment(.center)
+      Text(word.display).font(.system(size: practiceWordSize(word.display), weight: .medium)).multilineTextAlignment(.center)
         .accessibilityLabel(L("practice.writing.copyThis", word.display))
     }
     .frame(maxWidth: .infinity, minHeight: 160)
@@ -196,12 +196,5 @@ struct WritingPracticeView: View {
     .multilineTextAlignment(.center)
     .frame(minHeight: 20)
     .accessibilityAddTraits(.updatesFrequently)
-  }
-
-  /// The same sizes as the typing word.
-  private func wordSize(_ text: String) -> CGFloat {
-    let length = text.unicodeScalars.count
-    if length > 24 { return 26 }
-    return length > 10 ? 44 : 64
   }
 }
