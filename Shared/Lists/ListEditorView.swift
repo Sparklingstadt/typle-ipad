@@ -12,6 +12,21 @@ struct ListEditorView: View {
     let id = UUID()
     var word: Word
     var filled: Bool { !word.display.isEmpty || !word.input.isEmpty || !word.annotation.isEmpty }
+
+    /// A new empty row, with its own id each time.
+    static var empty: Row { Row(word: Word(display: "", input: "")) }
+
+    /// A saved word as the editor shows it: an input equal to the word shown is empty, as the web editor does.
+    init(editing word: Word) {
+      self.init(word: Word(display: word.display, input: word.input == word.display ? "" : word.input, annotation: word.annotation))
+    }
+
+    init(word: Word) { self.word = word }
+
+    /// The word to save: an empty input means the same as the word shown.
+    var saved: Word {
+      Word(display: word.display, input: word.input.isEmpty ? word.display : word.input, annotation: word.annotation, inputType: word.inputType)
+    }
   }
 
   private enum Field: Hashable {
@@ -80,7 +95,7 @@ struct ListEditorView: View {
           .outlined(radius: Radius.lg, color: Palette.destructive.opacity(0.4))
       }
       nameCard
-      writingCard
+      WritingMarkCard(writing: $writing)
       wordsCard
       if let original, !original.records.isEmpty, original.words.count != words.count, currentRecordCount(original) > 0 {
         Text(L("wordLists.editor.recount", original.words.count, words.count, currentRecordCount(original)))
@@ -125,42 +140,6 @@ struct ListEditorView: View {
     .card()
   }
 
-  /// The names of the recognition languages in their own language, the same in every display language (as the web app
-  /// shows them).
-  static let writingLanguageNames: [WritingLanguage: String] = [
-    .en: "English", .ja: "日本語", .zhHans: "中文（简体）", .zhHant: "中文（繁體）", .ko: "한국어",
-    .fr: "Français", .de: "Deutsch", .es: "Español", .ru: "Русский", .cs: "Čeština",
-  ]
-
-  private var writingCard: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Toggle(isOn: Binding(get: { writing != nil }, set: { on in
-        // Turned on, the language starts as the display language's, or English.
-        writing = on ? WritingMark(language: Localization.locale.language.languageCode?.identifier == "ja" ? .ja : .en) : nil
-      })) {
-        Text(L("wordLists.editor.writingToggle")).font(.system(size: 14, weight: .semibold))
-      }
-      Text(L("wordLists.editor.writingToggleHelp")).font(.system(size: 12)).foregroundStyle(Palette.mutedForeground)
-      if let mark = writing {
-        HStack(spacing: 12) {
-          Menu {
-            Picker(L("wordLists.editor.writingLanguage"), selection: Binding(get: { mark.language }, set: { writing = WritingMark(language: $0) })) {
-              ForEach(WritingLanguage.allCases, id: \.self) { language in
-                Text(Self.writingLanguageNames[language] ?? language.rawValue).tag(language)
-              }
-            }
-            .menuPicker()
-          } label: {
-            FilterLabel(name: L("wordLists.editor.writingLanguage"), value: Self.writingLanguageNames[mark.language] ?? mark.language.rawValue)
-          }
-          .plainMenu()
-        }
-      }
-    }
-    .padding(24)
-    .card()
-  }
-
   private var wordsCard: some View {
     VStack(alignment: .leading, spacing: 0) {
       HStack(spacing: 10) {
@@ -172,27 +151,7 @@ struct ListEditorView: View {
       }
       .padding(.horizontal, 24)
       .padding(.vertical, 16)
-      HStack(spacing: 12) {
-        Text("#").frame(width: 60, alignment: .leading)
-        HStack(spacing: 0) { Text(L("wordLists.editor.display")); Text("*").foregroundStyle(Palette.destructive) }
-          .frame(maxWidth: .infinity, alignment: .leading)
-        HStack(spacing: 4) {
-          Text(L("wordLists.editor.input")).foregroundStyle(Palette.foreground)
-          Text(L("wordLists.editor.inputHint"))
-        }
-        .lineLimit(1)
-        .minimumScaleFactor(0.75)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        Text(L("wordLists.editor.annotationOptional")).frame(maxWidth: .infinity, alignment: .leading)
-        Color.clear.frame(width: 76, height: 1)
-      }
-      .font(.system(size: 12, weight: .medium))
-      .foregroundStyle(Palette.mutedForeground)
-      .padding(.horizontal, 24)
-      .frame(height: 34)
-      .background(Palette.muted.opacity(0.5))
-      .hairline(.top)
-      .hairline(.bottom)
+      WordTableHeader()
       ForEach($rows) { $row in
         let index = rows.firstIndex { $0.id == row.id } ?? 0
         if index > 0 { Hairline() }
@@ -212,15 +171,7 @@ struct ListEditorView: View {
         }
         .buttonStyle(.plain)
         .disabled(rows.count >= maxWords)
-        HStack(spacing: 8) {
-          Kbd(text: "Enter"); Text(L("wordLists.editor.shortcutNext"))
-          Text("・")
-          Kbd(text: "⌘+Enter"); Text(L("wordLists.editor.shortcutSave"))
-          Text("・")
-          Image(systemName: "line.3.horizontal").font(.system(size: 11)); Text(L("wordLists.editor.shortcutDrag"))
-        }
-        .font(.system(size: 12))
-        .foregroundStyle(Palette.mutedForeground)
+        WordEditorHints()
       }
       .padding(.horizontal, 24)
       .padding(.vertical, 16)
@@ -296,27 +247,7 @@ struct ListEditorView: View {
   }
 
   private var footer: some View {
-    HStack(spacing: 12) {
-      Text(changed ? L("wordLists.editor.unsaved") : L("wordLists.editor.noChanges"))
-        .foregroundStyle(changed ? Palette.foreground : Palette.mutedForeground)
-      Text(L("wordLists.editor.wordTotal", rows.filter(\.filled).count)).foregroundStyle(Palette.mutedForeground)
-      Spacer()
-      Button(L("common.form.cancel")) { leave() }.buttonStyle(.typle(.ghost, size: .lg))
-      Button { save() } label: {
-        HStack(spacing: 8) {
-          Text(L("wordLists.editor.save"))
-          Text("⌘+Enter").font(.system(size: 11)).foregroundStyle(Palette.primaryForeground.opacity(0.6))
-        }
-      }
-      .buttonStyle(.typle(.primary, size: .lg))
-      .keyboardShortcut(.return, modifiers: .command)
-      .disabled(saving)
-    }
-    .font(.system(size: 14))
-    .padding(.horizontal, 20)
-    .padding(.vertical, 14)
-    .card()
-    .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+    ListEditorFooter(changed: changed, wordCount: rows.filter(\.filled).count, saving: saving, onCancel: leave, onSave: save)
   }
 
   // MARK: Actions
@@ -326,11 +257,10 @@ struct ListEditorView: View {
     loaded = true
     if let original {
       name = original.name
-      // An input equal to the word shown is shown as empty, as the web editor does.
-      rows = original.words.map { Row(word: Word(display: $0.display, input: $0.input == $0.display ? "" : $0.input, annotation: $0.annotation)) }
+      rows = original.words.map(Row.init(editing:))
       writing = original.writing
     } else {
-      rows = [Row(word: Word(display: "", input: ""))]
+      rows = [Row.empty]
       focus = .name
     }
     saved = (name, words)
@@ -342,7 +272,7 @@ struct ListEditorView: View {
   }
 
   private func addRow() {
-    let row = Row(word: Word(display: "", input: ""))
+    let row = Row.empty
     rows.append(row)
     focus = .display(row.id)
   }
@@ -367,7 +297,7 @@ struct ListEditorView: View {
   private func remove(_ index: Int) {
     guard rows.indices.contains(index) else { return }
     rows.remove(at: index)
-    if rows.isEmpty { rows = [Row(word: Word(display: "", input: ""))] }
+    if rows.isEmpty { rows = [Row.empty] }
   }
 
   private func readFile(_ result: Result<URL, Error>) {
@@ -391,7 +321,7 @@ struct ListEditorView: View {
       errorMessage = errorText(TypleError("importTooManyRows"))
       return
     }
-    rows = kept + words.map { Row(word: Word(display: $0.display, input: $0.input == $0.display ? "" : $0.input, annotation: $0.annotation)) }
+    rows = kept + words.map(Row.init(editing:))
     imported = nil
   }
 
@@ -412,8 +342,7 @@ struct ListEditorView: View {
       return
     }
     let list = WordList(id: original?.id ?? randomId(), name: name,
-                        words: kept.map { Word(display: $0.word.display, input: $0.word.input.isEmpty ? $0.word.display : $0.word.input, annotation: $0.word.annotation,
-                                                   inputType: $0.word.inputType) },
+                        words: kept.map(\.saved),
                         records: original?.records ?? [], createdAt: original?.createdAt ?? isoString(Date()),
                         // The iPad and Mac editors do not edit these yet, so they stay as saved.
                         category: original?.category, tags: original?.tags, group: original?.group, levels: original?.levels,

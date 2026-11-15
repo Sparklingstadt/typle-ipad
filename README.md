@@ -87,7 +87,7 @@ Esc（練習のやり直し）・Return（結果画面でもう一度）・⌘Re
 | 場所 | 内容 |
 |---|---|
 | `TypleCore/` | Foundation だけに依存する Swift Package。typle-r の `src/core` の入力判定・記録・ベスト・ランキング・単語リスト・端末・CSV と、公式パックのカタログ（`src/plugins/packs` から作る `catalog.json`）。`swift test` で確認します |
-| `Shared/` | 両方のアプリの SwiftUI のコード。`Storage/`（端末内とアカウント、ログイン）、`Practice/`、`Lists/`、`Records/`、`Devices/`、`Resources/`（文言）。Mac で違うところは `#if os(macOS)` と `Support/Platform.swift`（ログインの `client`、保存データの名前など）、`Design/Theme.swift` の「The iPad and the Mac」（入力欄・メニュー・シートの見た目） |
+| `Shared/` | 両方のアプリの SwiftUI のコード。`Shell/`（上部バー・サイドバー・ドロワーの画面の枠）、`Design/`（色と角丸の `Theme.swift`、ボタン・入力欄・バッジなどの部品）、`Storage/`（端末内とアカウント、ログイン）、`Practice/`、`Lists/`、`Records/`、`Devices/`、`Resources/`（文言）。Mac で違うところは `#if os(macOS)` と `Support/Platform.swift`（ログインの `client`、保存データの名前など）、`Design/PlatformStyles.swift`（入力欄・メニュー・シートの見た目） |
 | `iPad/` | iPad 版だけのもの：練習欄（UIKit）とアイコン |
 | `Mac/` | Mac 版だけのもの：練習欄（AppKit）、メニューバー・CSV の保存・スクリーンショット（`MacCommands.swift`）、アイコン、entitlements、`Shared/` の文言のうち「iPad」「タップ」を含むものの Mac 版（`Resources/*/Mac.strings`） |
 | `TypleUITests/` | iPad のシミュレーターを回してスクリーンショットを撮るだけの UI テスト |
