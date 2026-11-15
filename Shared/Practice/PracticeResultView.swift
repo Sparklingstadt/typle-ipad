@@ -16,29 +16,11 @@ struct PracticeResultView: View {
   var onRetry: () -> Void
   var onChooseList: () -> Void
 
-  private enum Comparison {
-    case firstAtCount, firstForList
-    case best(difference: Double)
-    case behind(previous: StoredRecord)
-  }
-
-  private func compare() -> (rank: Int, comparison: Comparison) {
-    let wordCount = list.words.count
-    let normal = recordsOfMode(list.records, mode)
-    let ranked = rankRecords(normal.filter { $0.wordCount == wordCount })
-    let rank = record != nil && saveState == .saved ? (ranked.firstIndex { $0.id == record?.id } ?? -1) + 1 : 0
-    guard let previous = ranked.first(where: { $0.id != record?.id }) else {
-      return (rank, normal.contains { $0.id != record?.id } ? .firstAtCount : .firstForList)
-    }
-    if rank == 1, let record { return (rank, .best(difference: record.time - previous.time)) }
-    return (rank, .behind(previous: previous))
-  }
-
   var body: some View {
     let result = sessionResult(session)
-    let compared = compare()
-    let isBest: Bool = { if case .best = compared.comparison { return true } else { return false } }()
-    let faster: Bool = { if case .best(let difference) = compared.comparison { return difference < 0 } else { return false } }()
+    let compared = compareRun(record, list.records, wordCount: list.words.count, saved: saveState == .saved, mode: mode)
+    let isBest: Bool = { if case .best = compared.kind { return true } else { return false } }()
+    let faster: Bool = { if case .best(let difference) = compared.kind { return difference < 0 } else { return false } }()
     VStack(alignment: .leading, spacing: 20) {
       HStack(spacing: 12) {
         Text(L("practice.result.title")).font(.system(size: 26, weight: .bold))
@@ -62,7 +44,7 @@ struct PracticeResultView: View {
       }
       HStack(spacing: 12) {
         tile(L("practice.result.time"), Format.seconds(result.time), unit: L("practice.result.seconds"),
-             note: note(compared.comparison), good: isBest, icon: faster ? "chart.line.downtrend.xyaxis" : nil)
+             note: note(compared.kind), good: isBest, icon: faster ? "chart.line.downtrend.xyaxis" : nil)
         tile(L("practice.result.accuracy"), Format.number(result.accuracy, digits: 2), unit: "%",
              note: L(mode == .writing ? "practice.result.writingMistakes" : "practice.result.mistakes", result.mistakes))
         // Handwriting judges whole words, so it has no keys per minute.
@@ -113,7 +95,7 @@ struct PracticeResultView: View {
     .accessibilityLabel(L("practice.result.completed", list.name))
   }
 
-  private func note(_ comparison: Comparison) -> String {
+  private func note(_ comparison: RunComparison.Kind) -> String {
     switch comparison {
     case .behind(let previous):
       let time = Format.seconds(previous.time)

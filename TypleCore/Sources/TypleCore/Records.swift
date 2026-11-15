@@ -61,6 +61,44 @@ public func bestRecords(_ records: [StoredRecord], limit: Int = 5, order: RankOr
   Array(rankRecords(records, order: order).prefix(limit))
 }
 
+/// RunComparison: a finished run's rank (0 until it is saved) and what the practice result says about it.
+public struct RunComparison: Hashable, Sendable {
+  public enum Kind: Hashable, Sendable {
+    /// The first run at this word count; the list has runs at other counts.
+    case firstAtCount
+    /// The list's first run in this mode.
+    case firstForList
+    /// Rank 1, `difference` seconds against the previous best (negative when faster).
+    case best(difference: Double)
+    /// Not the best: the best of the other runs.
+    case behind(previous: StoredRecord)
+  }
+
+  public var rank: Int
+  public var kind: Kind
+
+  public init(rank: Int, kind: Kind) {
+    self.rank = rank
+    self.kind = kind
+  }
+}
+
+/// compareRun: how a finished run compares with the list's other runs, for the practice result. Ranks use the same order
+/// as the best records (accuracy first, then time), so only rank 1 is shown as an improvement. Like ベスト記録, only runs
+/// at this word count are compared: a run from before the list was edited is a different task. Only runs of the
+/// practised mode are compared, so a recall or handwriting run is never measured against normal runs. The run has a rank
+/// only once it is saved.
+public func compareRun(_ record: StoredRecord?, _ allRecords: [StoredRecord], wordCount: Int, saved: Bool, mode: PracticeMode) -> RunComparison {
+  let records = recordsOfMode(allRecords, mode)
+  let ranked = rankRecords(records.filter { $0.wordCount == wordCount })
+  let rank = record != nil && saved ? (ranked.firstIndex { $0.id == record?.id } ?? -1) + 1 : 0
+  guard let previous = ranked.first(where: { $0.id != record?.id }) else {
+    return RunComparison(rank: rank, kind: records.contains { $0.id != record?.id } ? .firstAtCount : .firstForList)
+  }
+  if rank == 1, let record { return RunComparison(rank: rank, kind: .best(difference: record.time - previous.time)) }
+  return RunComparison(rank: rank, kind: .behind(previous: previous))
+}
+
 /// Editing a list changes the task, so only runs at its current word count are compared. Records without a word
 /// count predate that field and cannot be matched. With no matching run, every record is compared instead. Only
 /// records of the given mode are compared: normal, recall and writing runs are never ranked together.
