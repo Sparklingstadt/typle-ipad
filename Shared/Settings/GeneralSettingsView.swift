@@ -9,8 +9,7 @@ struct GeneralSettingsView: View {
   @State private var kind = StorageKind.local
   @State private var serverURL = ""
   @State private var working = false
-  @State private var message: String?
-  @State private var failed = false
+  @State private var status: StatusMessage?
   @State private var loaded = false
 
   var body: some View {
@@ -86,7 +85,7 @@ struct GeneralSettingsView: View {
             Task {
               await app.signOut()
               kind = .local
-              message = nil
+              status = nil
             }
           }
           .buttonStyle(.typle(.outline, size: .lg))
@@ -94,10 +93,7 @@ struct GeneralSettingsView: View {
         }
         if working { ProgressView().padding(.leading, 4) }
       }
-      if let message {
-        Label(message, systemImage: failed ? "exclamationmark.triangle" : "checkmark.circle")
-          .font(.system(size: 13)).foregroundStyle(failed ? Palette.destructive : Palette.success)
-      }
+      if let status { StatusLabel(status: status, size: 13) }
       Text(L("settings.current", app.storage == .account ? L("settings.storage.account") : L("settings.storage.local")))
         .font(.system(size: 12)).foregroundStyle(Palette.mutedForeground)
     }
@@ -164,22 +160,19 @@ struct GeneralSettingsView: View {
   /// Switches or signs in, and says what came of it. Closing the login sheet is no failure and says nothing.
   private func run(_ action: @escaping () async throws -> Void) {
     working = true
-    message = nil
+    status = nil
     Task {
       do {
         try await action()
         if let error = app.loadError {
-          failed = true
-          message = error
+          status = .failure(error)
         } else {
-          failed = false
-          message = L("settings.connected", app.lists.count)
+          status = .done(L("settings.connected", app.lists.count))
         }
       } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
-        message = nil
+        status = nil
       } catch {
-        failed = true
-        message = errorText(error)
+        status = .failure(error)
       }
       working = false
     }

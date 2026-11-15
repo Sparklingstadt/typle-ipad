@@ -8,18 +8,14 @@ struct DevicesView: View {
   @State private var editing: PracticeDevice?
   @State private var creating = false
   @State private var deleting: PracticeDevice?
-  @State private var message: String?
-  @State private var failed = false
+  @State private var status: StatusMessage?
 
   var body: some View {
     let usage = deviceUsage(app.lists)
     let chosen = app.chosenPracticeDevice
     PageScroll(maxWidth: 832) {
       PageHeader(title: L("devices.title"), description: L("devices.description"))
-      if let message {
-        Label(message, systemImage: failed ? "exclamationmark.triangle" : "checkmark.circle")
-          .font(.system(size: 14)).foregroundStyle(failed ? Palette.destructive : Palette.success)
-      }
+      if let status { StatusLabel(status: status) }
       current(chosen)
       HStack {
         Text(L("devices.listHeading")).font(.system(size: 16, weight: .bold))
@@ -41,8 +37,8 @@ struct DevicesView: View {
         if app.devices.isEmpty { empty }
       }
     }
-    .sheet(isPresented: $creating) { DeviceEditor(device: nil) { message = L("devices.added", $0); failed = false } }
-    .sheet(item: $editing) { device in DeviceEditor(device: device) { message = L("devices.saved", $0); failed = false } }
+    .sheet(isPresented: $creating) { DeviceEditor(device: nil) { status = .done(L("devices.added", $0)) } }
+    .sheet(item: $editing) { device in DeviceEditor(device: device) { status = .done(L("devices.saved", $0)) } }
     .confirmationDialog(deleting.map { L("devices.deleteTitle", $0.name) } ?? "", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                         titleVisibility: .visible, presenting: deleting) { device in
       Button(L("common.delete.confirm"), role: .destructive) { delete(device) }
@@ -151,11 +147,9 @@ struct DevicesView: View {
     Task {
       do {
         try await app.deleteDevice(id: device.id)
-        failed = false
-        message = L("devices.deleted", device.name)
+        status = .done(L("devices.deleted", device.name))
       } catch {
-        failed = true
-        message = errorText(error)
+        status = .failure(error)
       }
     }
   }

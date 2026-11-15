@@ -1,6 +1,5 @@
 import SwiftUI
 import TypleCore
-import UniformTypeIdentifiers
 
 /// The word lists page (src/app/(workspace)/edit/page.tsx): search, sort, practise, edit, copy, export and delete.
 struct ListsView: View {
@@ -8,18 +7,14 @@ struct ListsView: View {
   @State private var query = ""
   @State private var order = ListOrder.added
   @State private var deleting: WordList?
-  @State private var message: String?
-  @State private var failed = false
+  @State private var status: StatusMessage?
 
   var body: some View {
     let all = listOverviews(app.lists)
     let items = sortOverviews(all.filter { matchesQuery($0.list, query) }, order: order, locale: Localization.locale)
     PageScroll {
       PageHeader(title: L("wordLists.page.title"), description: L("wordLists.page.description"))
-      if let message {
-        Label(message, systemImage: failed ? "exclamationmark.triangle" : "checkmark.circle")
-          .font(.system(size: 14)).foregroundStyle(failed ? Palette.destructive : Palette.success)
-      }
+      if let status { StatusLabel(status: status) }
       VStack(alignment: .leading, spacing: 16) {
         HStack(spacing: 10) {
           Text(L("wordLists.manager.heading")).font(.system(size: 16, weight: .bold))
@@ -162,11 +157,9 @@ struct ListsView: View {
     Task {
       do {
         let copy = try await app.duplicateList(id: list.id)
-        failed = false
-        message = L("wordLists.page.created", copy.name)
+        status = .done(L("wordLists.page.created", copy.name))
       } catch {
-        failed = true
-        message = errorText(error)
+        status = .failure(error)
       }
     }
   }
@@ -175,38 +168,10 @@ struct ListsView: View {
     Task {
       do {
         try await app.deleteList(id: list.id)
-        failed = false
-        message = L("wordLists.page.deleted", list.name)
+        status = .done(L("wordLists.page.deleted", list.name))
       } catch {
-        failed = true
-        message = errorText(error)
+        status = .failure(error)
       }
     }
-  }
-}
-
-/// A list's words as a CSV file, written only when shared (src/components/WordListExport.tsx).
-struct CsvExport: Transferable {
-  var list: WordList
-
-  static var transferRepresentation: some TransferRepresentation {
-    FileRepresentation(exportedContentType: .commaSeparatedText) { export in SentTransferredFile(try export.write()) }
-  }
-
-  /// The file's name: the list's name without the characters a file name cannot have.
-  var fileName: String {
-    let unsafe = CharacterSet(charactersIn: "/\\?%*|\"<>:").union(.newlines).union(.controlCharacters)
-    let name = list.name.components(separatedBy: unsafe).joined(separator: "_").trimmingCharacters(in: .whitespaces)
-    return (name.isEmpty ? "words" : name) + ".csv"
-  }
-
-  var data: Data { Data(encodeWordCsv(list.words).utf8) }
-
-  func write() throws -> URL {
-    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    let url = directory.appendingPathComponent(fileName)
-    try data.write(to: url, options: .atomic)
-    return url
   }
 }
