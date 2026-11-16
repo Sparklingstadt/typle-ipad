@@ -16,6 +16,28 @@ public enum WordFileFormat: String, CaseIterable, Sendable {
   }
 }
 
+/// wordFilename (src/plugins/formats/index.ts): a file name for a list's words that every system can save. Characters
+/// a path cannot have and control characters become `_`; dots and spaces at either end are dropped; the name is cut to
+/// 80 UTF-16 units, as JavaScript's `slice`, without splitting a character (where JavaScript would leave half of one);
+/// an empty name becomes `word-list`; and a Windows device name such as `CON` gets a `_` in front.
+public func wordFilename(_ name: String, format: WordFileFormat) -> String {
+  let unsafe: Set<Unicode.Scalar> = ["<", ">", ":", "\"", "/", "\\", "|", "?", "*"]
+  let isDotOrSpace = { (scalar: Unicode.Scalar) in scalar == "." || scalar == " " }
+  var scalars = name.unicodeScalars.map { $0.value < 32 || unsafe.contains($0) ? "_" : $0 }
+  scalars = Array(scalars.drop(while: isDotOrSpace).reversed().drop(while: isDotOrSpace).reversed())
+  var units = 0
+  scalars = Array(scalars.prefix { scalar in
+    units += scalar.utf16.count
+    return units <= 80
+  })
+  while let last = scalars.last, isDotOrSpace(last) { scalars.removeLast() }
+  var safe = String.UnicodeScalarView()
+  safe.append(contentsOf: scalars)
+  let base = safe.isEmpty ? "word-list" : String(safe)
+  let reserved = base.range(of: "^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\\.|$)", options: [.regularExpression, .caseInsensitive]) != nil
+  return (reserved ? "_" : "") + base + "." + format.rawValue
+}
+
 /// Reads a UTF-8 word file, refusing other encodings and files over the size limit.
 public func parseWordData(_ data: Data, format: WordFileFormat) throws -> [Word] {
   if data.count > maxImportBytes { throw TypleError("importTooLarge") }
