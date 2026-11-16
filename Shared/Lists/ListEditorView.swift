@@ -244,10 +244,9 @@ struct ListEditorView: View {
     errorMessage = nil
     nameError = nil
     rowErrors = [:]
-    // Empty rows at the end are ignored; a row with only a note or input must have its word filled in.
-    var kept = rows
-    while let last = kept.last, !last.filled, kept.count > 0 { kept.removeLast() }
-    for problem in draftProblems(name: name, words: kept.map { ($0.id, $0.word) }) {
+    // Every row is checked and saved, as in the web app: an empty row has no word shown, so it must be filled in or
+    // deleted.
+    for problem in draftProblems(name: name, words: rows.map { ($0.id, $0.word) }) {
       switch problem {
       case .name: nameError = errorText(TypleError("listNameRequired"))
       case .display(let id): rowErrors[id] = L("wordLists.editor.displayRequired")
@@ -259,7 +258,7 @@ struct ListEditorView: View {
       return
     }
     let list = WordList(id: original?.id ?? randomId(), name: name,
-                        words: kept.map(\.saved),
+                        words: rows.map(\.saved),
                         records: original?.records ?? [], createdAt: original?.createdAt ?? isoString(Date()),
                         // The iPad and Mac editors do not edit these yet, so they stay as saved.
                         category: original?.category, tags: original?.tags, group: original?.group, levels: original?.levels,
