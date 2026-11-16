@@ -47,7 +47,7 @@ struct ListPickerSheet: View {
   @State private var query = ""
 
   var body: some View {
-    let filtered = lists.filter { query.trimmingCharacters(in: .whitespaces).isEmpty || $0.name.lowercased().contains(query.trimmingCharacters(in: .whitespaces).lowercased()) }
+    let filtered = lists.filter { matchesName($0, query) }
     VStack(alignment: .leading, spacing: 16) {
       HStack(alignment: .top) {
         VStack(alignment: .leading, spacing: 6) {

@@ -10,12 +10,8 @@ struct CsvExport: Transferable {
     FileRepresentation(exportedContentType: .commaSeparatedText) { export in SentTransferredFile(try export.write()) }
   }
 
-  /// The file's name: the list's name without the characters a file name cannot have.
-  var fileName: String {
-    let unsafe = CharacterSet(charactersIn: "/\\?%*|\"<>:").union(.newlines).union(.controlCharacters)
-    let name = list.name.components(separatedBy: unsafe).joined(separator: "_").trimmingCharacters(in: .whitespaces)
-    return (name.isEmpty ? "words" : name) + ".csv"
-  }
+  /// The file's name, made safe to save as the web app makes it.
+  var fileName: String { wordFilename(list.name, format: .csv) }
 
   var data: Data { Data(encodeWordCsv(list.words).utf8) }
 

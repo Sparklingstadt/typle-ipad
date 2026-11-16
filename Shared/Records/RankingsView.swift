@@ -54,7 +54,7 @@ struct RankingsView: View {
 
   private var lists: some View {
     let rankings = sortRankings(app.lists.map { listRanking($0, device: device, order: order, mode: app.rankingsMode) }, sort: sort, locale: Localization.locale)
-      .filter { query.isEmpty || $0.list.name.lowercased().contains(query.trimmingCharacters(in: .whitespaces).lowercased()) }
+      .filter { matchesName($0.list, query) }
     let practised = rankings.filter { !$0.records.isEmpty }
     let unpractised = rankings.filter { $0.records.isEmpty }
     return VStack(spacing: 0) {
