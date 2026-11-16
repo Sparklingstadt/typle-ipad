@@ -137,6 +137,13 @@ public func matchesQuery(_ list: WordList, _ query: String) -> Bool {
     list.words.contains { $0.display.lowercased().contains(needle) || $0.input.lowercased().contains(needle) }
 }
 
+/// Matches the list name only, as the rankings and the list picker search: ignoring case and the spaces around the
+/// query, and every list for a blank one, like `matchesQuery`. (The apps' own: the web app now searches packs there.)
+public func matchesName(_ list: WordList, _ query: String) -> Bool {
+  let needle = query.trimmed.lowercased()
+  return needle.isEmpty || list.name.lowercased().contains(needle)
+}
+
 /// Deletes a list with its records. A list of a followed official pack goes only with its pack, which the web app
 /// unfollows.
 public func deleteList(_ lists: [WordList], id: String) throws -> [WordList] {
